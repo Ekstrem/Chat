@@ -49,13 +49,13 @@ namespace Hive.SeedWorks.TacticalPatterns
         /// <param name="id">Идентификатор агрегата.</param>
         /// <returns>Агрегат.</returns>
         TAnemicModel GetAggregate(Guid id);
-        
+
         /// <summary>
         /// Получение агрегата(ов) по идентификатору.
         /// </summary>
         /// <param name="id">Идентификатор агрегата.</param>
         /// <param name="cancellationToken">Маркер отмены.</param>
         /// <returns>Задача на извлечение агрегата.</returns>
-        TAnemicModel GetAggregateAsync(Guid id, CancellationToken cancellationToken);
+        Task<TAnemicModel> GetAggregateAsync(Guid id, CancellationToken cancellationToken);
     }
 }

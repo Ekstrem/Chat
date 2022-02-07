@@ -15,6 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Domain.Tests", "Chat.D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Api", "Chat.Api\Chat.Api.csproj", "{94852B50-84C7-454C-8060-E348931E8F63}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Storage", "Chat.Storage\Chat.Storage.csproj", "{F267D4FA-623C-46B0-9612-941BD99B098B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.InternalContracts", "Chat.InternalContracts\Chat.InternalContracts.csproj", "{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,14 @@ Global
 		{94852B50-84C7-454C-8060-E348931E8F63}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{94852B50-84C7-454C-8060-E348931E8F63}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{94852B50-84C7-454C-8060-E348931E8F63}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F267D4FA-623C-46B0-9612-941BD99B098B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F267D4FA-623C-46B0-9612-941BD99B098B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F267D4FA-623C-46B0-9612-941BD99B098B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F267D4FA-623C-46B0-9612-941BD99B098B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

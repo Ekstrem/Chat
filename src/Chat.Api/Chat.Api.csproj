@@ -8,4 +8,8 @@
     <ProjectReference Include="..\Chat.Application\Chat.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
 </Project>

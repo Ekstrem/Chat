@@ -4,5 +4,7 @@ using Hive.SeedWorks.TacticalPatterns;
 
 namespace Chat.DomainServices
 {
-    public interface IChatAggregateRepository : IAnemicModelRepository<IChat, IChatAnemicModel> { }
+    public interface IRepository: IAnemicModelRepository<IChat, IChatAnemicModel> 
+    { 
+    }
 }
