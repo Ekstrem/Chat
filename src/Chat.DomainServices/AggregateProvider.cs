@@ -24,7 +24,7 @@ namespace Chat.DomainServices
         }
 
         public async Task<IChatAggregate> GetAggregateAsync(Guid id, CancellationToken cancellationToken)
-            => ((await _repository.GetById(id, CancellationToken.None))?.FirstOrDefault() ?? DefaultAnemicModel.Create(id))
+           => ((await _repository.GetById(id, CancellationToken.None))?.FirstOrDefault() ?? DefaultAnemicModel.Create(id))
                 .PipeTo(DecorateModel);
 
         public async Task<IChatAggregate> GetAggregateAsync(Guid id, long version,

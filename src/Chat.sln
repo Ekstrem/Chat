@@ -15,9 +15,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Domain.Tests", "Chat.D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Api", "Chat.Api\Chat.Api.csproj", "{94852B50-84C7-454C-8060-E348931E8F63}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Storage", "Chat.Storage\Chat.Storage.csproj", "{F267D4FA-623C-46B0-9612-941BD99B098B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Storage", "Chat.Storage\Chat.Storage.csproj", "{F267D4FA-623C-46B0-9612-941BD99B098B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.InternalContracts", "Chat.InternalContracts\Chat.InternalContracts.csproj", "{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.InternalContracts", "Chat.InternalContracts\Chat.InternalContracts.csproj", "{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Contracts", "Chat.Contracts\Chat.Contracts.csproj", "{7894A425-B2F8-407E-9325-040D08915AF5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +59,10 @@ Global
 		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7894A425-B2F8-407E-9325-040D08915AF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7894A425-B2F8-407E-9325-040D08915AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7894A425-B2F8-407E-9325-040D08915AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7894A425-B2F8-407E-9325-040D08915AF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

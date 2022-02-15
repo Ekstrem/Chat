@@ -2,7 +2,7 @@
 using Autofac;
 using Chat.Domain;
 using Chat.Domain.Abstraction;
-using Hive.SeedWorks;
+using Hive.SeedWorks.Events;
 using Hive.SeedWorks.Monads;
 using Hive.SeedWorks.Result;
 using Hive.SeedWorks.TacticalPatterns;
@@ -18,11 +18,14 @@ namespace Chat.DomainServices
             => builder
                 .Do(b => b
                     .RegisterType<AggregateProvider>()
-                    .As<IAggregateProvider<IChat, IChatAnemicModel>>()
+                  //  .As<IAggregateProvider<IChat, IChatAnemicModel>>()
                     .As<IChatAggregateProvider>())
                 .Do(b => b
+                    .RegisterType<EventBus>()
+                    .As<IEventBus>())
+                .Do(b => b
                     .RegisterType<BusAdapter>()
-                    .As<IObserver<AggregateResult<IChat, IChatAggregate>>>());
+                    .As<IObserver<AggregateResult<IChat, IChatAnemicModel>>>());
         //.Do(b =>b
         //        .RegisterType<DomainCommandExecutor>()
         //        .As<IDomainCommandExecutor<IChat, IChatAggregate>>());

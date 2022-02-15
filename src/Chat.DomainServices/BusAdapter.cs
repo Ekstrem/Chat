@@ -16,7 +16,9 @@ namespace Chat.DomainServices
         public BusAdapter(
             IEventBus eventBus,
             ILogger<BusAdapter> logger)
-        { 
+        {
+            _eventBus = eventBus;
+            _logger = logger;   
         }
 
         public void OnCompleted()
