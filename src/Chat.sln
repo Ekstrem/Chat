@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hive.SeedWorks", "Hive.SeedWorks\Hive.SeedWorks.csproj", "{07C34F91-DB12-434E-B031-A46EBB4074AB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hive.SeedWorks", "%Hive%\Source\Hive.SeedWorks.csproj", "{07C34F91-DB12-434E-B031-A46EBB4074AB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Domain", "Chat.Domain\Chat.Domain.csproj", "{6BE41A1C-5C6F-4111-BEF0-D9E09F270C18}"
 EndProject
