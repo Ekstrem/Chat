@@ -22,30 +22,39 @@ namespace Chat.Storage
         private readonly IQueryRepository<DomainEventEventEntry> _eventRepository;
 
         public Repository(
-            ILogger<Repository> logger,
-            IQueryRepository<DomainEventEventEntry> eventRepository,
-            IIndex<string, DbContext> dbContexts)
+            ILogger<Repository> logger
+          //  ,IQueryRepository<DomainEventEventEntry> eventRepository
+            //,IIndex<string, DbContext> dbContexts
+            )
         {
             _logger = logger;
-            _eventRepository = eventRepository;
+           // _eventRepository = eventRepository;
         }
 
         public Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
             => new GetByIdSpec(id)
-                .PipeTo(query => AggregateStreams(query, cancellationToken));
+                .PipeTo(query => AggregateStreams(id, query, cancellationToken));
 
 
         public Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
         {
             var aggregates = new GetByIdAndVersionSpec(id, version)
-                .PipeTo(query => AggregateStreams(query, cancellationToken));
+                .PipeTo(query => AggregateStreams(id, query, cancellationToken))
+                .PipeTo(r => r.Result);
 
-            return aggregates.SingleOrDefault() ?? DefaultAnemicModel.Create(id);
+            var result = aggregates.SingleOrDefault() ?? DefaultAnemicModel.Create(Guid.NewGuid());
+            return Task.FromResult(result);
         }
 
         public Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
-            => new GetByIdAndVersionSpec(correlationToken)
-                .PipeTo(query => AggregateStreams(query, cancellationToken));
+        {
+            var aggregates = new GetByCorrelationTokenSpec(correlationToken)
+                .PipeTo(query => AggregateStreams(Guid.NewGuid(), query, cancellationToken))
+                .PipeTo(r => r.Result);
+
+            var result = aggregates.SingleOrDefault() ?? DefaultAnemicModel.Create(Guid.NewGuid());
+            return Task.FromResult(result);
+        }
 
         private Task<List<IChatAnemicModel>> AggregateStreams(Guid? defaultStreamId,
             ISpecification<DomainEventEventEntry> spec, CancellationToken cancellationToken)

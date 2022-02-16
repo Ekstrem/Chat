@@ -33,7 +33,7 @@ namespace Chat.DomainServices
 
         public void OnNext(AggregateResult<IChat, IChatAnemicModel> value)
         {
-            var message = JsonConvert.SerializeObject(value.Event.ChangedValueObjects);
+            var message = JsonConvert.SerializeObject(value.ChangeValueObjects);
             _logger.LogInformation($"DE! Command version:{value.Event.Command.Version}; vos: {message}");
 
             _eventBus.Publish(value.Event);
