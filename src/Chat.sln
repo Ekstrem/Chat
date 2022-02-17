@@ -1,10 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32014.148
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31911.196
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hive.SeedWorks", "%Hive%\Source\Hive.SeedWorks.csproj", "{07C34F91-DB12-434E-B031-A46EBB4074AB}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Domain", "Chat.Domain\Chat.Domain.csproj", "{6BE41A1C-5C6F-4111-BEF0-D9E09F270C18}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.DomainServices", "Chat.DomainServices\Chat.DomainServices.csproj", "{A4C8D9B0-993E-4E42-BBCE-C53BF84CFE68}"
@@ -15,9 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Domain.Tests", "Chat.D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Api", "Chat.Api\Chat.Api.csproj", "{94852B50-84C7-454C-8060-E348931E8F63}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.Storage", "Chat.Storage\Chat.Storage.csproj", "{F267D4FA-623C-46B0-9612-941BD99B098B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Storage", "Chat.Storage\Chat.Storage.csproj", "{F267D4FA-623C-46B0-9612-941BD99B098B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat.InternalContracts", "Chat.InternalContracts\Chat.InternalContracts.csproj", "{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.InternalContracts", "Chat.InternalContracts\Chat.InternalContracts.csproj", "{91D91A83-B2AE-4BFC-B6C9-89A73F6CFAEA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,10 +23,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{07C34F91-DB12-434E-B031-A46EBB4074AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{07C34F91-DB12-434E-B031-A46EBB4074AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{07C34F91-DB12-434E-B031-A46EBB4074AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{07C34F91-DB12-434E-B031-A46EBB4074AB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6BE41A1C-5C6F-4111-BEF0-D9E09F270C18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6BE41A1C-5C6F-4111-BEF0-D9E09F270C18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BE41A1C-5C6F-4111-BEF0-D9E09F270C18}.Release|Any CPU.ActiveCfg = Release|Any CPU
