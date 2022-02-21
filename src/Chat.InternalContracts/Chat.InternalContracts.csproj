@@ -6,7 +6,7 @@
 
   <ItemGroup>
 	  <PackageReference Include="Ardalis.Specification.EntityFrameworkCore" Version="6.0.1" />
-	  <PackageReference Include="Hive.SeedWorks" Version="0.0.1" />
+      <PackageReference Include="MHive.SeedWorks" Version="0.1.0" />
   </ItemGroup>
 
 </Project>
