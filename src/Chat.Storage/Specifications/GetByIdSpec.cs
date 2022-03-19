@@ -3,7 +3,7 @@ using Ardalis.Specification;
 
 namespace Chat.Storage.Specifications
 {
-    public class GetByIdSpec : Specification<DomainEventEventEntry>
+    public class GetByIdSpec : Specification<DomainEventEntry>
     {
         public GetByIdSpec(Guid id)
         {

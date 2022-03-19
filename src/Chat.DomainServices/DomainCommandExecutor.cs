@@ -8,11 +8,11 @@
 
 //namespace Chat.DomainServices
 //{
-//    internal class DomainCommandExecutor:
+//    internal class DomainCommandExecutor :
 //        DomainCommandExecutor<IChat, IChatAggregate, IChatAnemicModel>
 //    {
 //        public DomainCommandExecutor(
-//            IChatAggregateProvider provider) : base(provider) 
+//            IChatAggregateProvider provider) : base(provider)
 //        { }
 
 //        protected override IChatAnemicModel ToAnemicModel(IDictionary<string, IValueObject> valueObjects)
@@ -22,7 +22,7 @@
 //                CommandMetadata.CorrlationToken,
 //                CommandMetadata.CommandName,
 //                CommandMetadata.SubjectName,
-//                vos.TryGetValue(nameof(ChatRoot), out var root) ? (ChatRoot) root : null,
+//                vos.TryGetValue(nameof(ChatRoot), out var root) ? (ChatRoot)root : null,
 //                vos.TryGetValue(nameof(ChatActor), out var actor) ? (ChatActor)actor : null,
 //                vos.TryGetValue(nameof(ChatFeedback), out var feedback) ? (ChatFeedback)feedback : null,
 //                Enumerable.Empty<ChatMessage>()));

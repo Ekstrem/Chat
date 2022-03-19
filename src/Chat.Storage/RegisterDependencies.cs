@@ -1,6 +1,7 @@
 ﻿using Autofac;
 using Chat.DomainServices;
 using Hive.SeedWorks.Monads;
+using Microsoft.EntityFrameworkCore;
 
 namespace Chat.Storage
 {
@@ -13,8 +14,11 @@ namespace Chat.Storage
         {
             builder
                 .Do(b => b
-                    .RegisterType<Repository>()
-                    .As<IRepository>());
+                    .RegisterType<CommandDbContext>()
+                    .Keyed<DbContext>(nameof(Storage)));
+            //    .Do(b => b
+            //        .RegisterType<Repository>()
+            //        .As<IRepository>());
 
             return builder;
         }

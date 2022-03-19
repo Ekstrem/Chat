@@ -3,7 +3,7 @@ using System;
 
 namespace Chat.Storage.Specifications
 {
-    public class GetByCorrelationTokenSpec : Specification<DomainEventEventEntry>
+    public class GetByCorrelationTokenSpec : Specification<DomainEventEntry>
     {
         public GetByCorrelationTokenSpec(Guid correlationToken)
         {
