@@ -4,8 +4,5 @@ using Hive.SeedWorks.TacticalPatterns;
 
 namespace Chat.DomainServices
 {
-    public interface IChatAggregateProvider :
-        IAggregateProvider<IChat, IChatAggregate>
-    {
-    }
+    public interface IChatAggregateProvider : IAggregateProvider<IChat, IChatAggregate> { }
 }

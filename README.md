@@ -1,3 +1,5 @@
+![](https://github.com/Ekstrem/Chat/workflows/ci/badge.svg)
+
 # Chat
 Агрегат
 ## Объекты-значения

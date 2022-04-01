@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Chat.Domain.Tests\Chat.Domain.Tests.csproj" />
     <ProjectReference Include="..\Chat.Domain\Chat.Domain.csproj" />
     <ProjectReference Include="..\Chat.InternalContracts\Chat.InternalContracts.csproj" />
   </ItemGroup>
