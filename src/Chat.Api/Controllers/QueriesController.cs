@@ -21,7 +21,7 @@ namespace Chat.Api.Controllers
         [HttpGet("{id}/{version}")]
         public async Task<IActionResult> GetInfo(Guid id, long version = default)
             => new GetChatInfoQuery(id, version)
-            .PipeTo(async query => await _mediator.Send(query))
-            .Either(r => r != null, Ok, _ => (IActionResult)new NotFoundResult());
+                .PipeTo(async query => await _mediator.Send(query))
+                .Either(r => r != null, Ok, _ => (IActionResult)new NotFoundResult());
     }
 }

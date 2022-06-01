@@ -37,11 +37,17 @@ namespace Chat.DomainServices
                 .GetResult();
 
         public IChatAggregate GetAggregate(Guid id)
-            => GetAggregateAsync(id, CancellationToken.None).Result;
+            => GetAggregateAsync(id, CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
 
         private IChatAggregate DecorateModel(IChatAnemicModel model)
             => model
                 .PipeTo(Aggregate.Create)
                 .PipeNotifierToContract(_observers);
+
+        public IChatAggregate CreateAggregate()
+            => Guid.NewGuid()
+            .PipeTo(GetAggregate);
     }
 }

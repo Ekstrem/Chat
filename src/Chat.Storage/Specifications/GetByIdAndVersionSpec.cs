@@ -9,7 +9,7 @@ namespace Chat.Storage.Specifications
         {
             Query
                 .AsNoTracking()
-                .Where(t => t.Id == id && t.Version == version);
+                .Where(t => t.AggregateId == id && t.Version == version);
         }
     }
 }

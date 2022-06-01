@@ -25,13 +25,6 @@ namespace Chat.Application.Commands
             _mapper = mapper;
         }
 
-        public ICommandToAggregate CreateCommandMetadata(string commandName, Guid correlationToken, long version = 0)
-           => CommandToAggregate.Commit(
-               correlationToken,
-               commandName,
-               nameof(IChat),
-               version);
-
         public Task<Guid> Handle(RequestQuestionCommand request, CancellationToken cancellationToken)
         {
             var model = AnemicModel
@@ -39,7 +32,8 @@ namespace Chat.Application.Commands
                        Guid.NewGuid(),
                         CreateCommandMetadata(
                             nameof(Aggregate.SubscriberRequestQuestion),
-                            request.CorrelationId),
+                            request.CorrelationId,
+                            DateTime.UtcNow.Ticks),
                         ChatRoot.CreateInstance(
                             Guid.NewGuid(),
                             23453254),
@@ -58,11 +52,17 @@ namespace Chat.Application.Commands
                                     Guid.Empty)
                         });
 
-
-            return _provider.GetAggregate(Guid.NewGuid())
+            return _provider.CreateAggregate()
                 .PipeTo(aggregate => aggregate.SubscriberRequestQuestion(model))
                 .PipeTo(result => result.BusinessOperationData.Model.Id)
                 .PipeTo(Task.FromResult);
         }
+
+        private ICommandToAggregate CreateCommandMetadata(string commandName, Guid correlationToken, long version = 0)
+           => CommandToAggregate.Commit(
+               correlationToken,
+               commandName,
+               nameof(IChat),
+               version);
     }
 }

@@ -1,42 +1,38 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Events;
 using Hive.SeedWorks.Result;
 using Microsoft.Extensions.Logging;
 using System;
 using Newtonsoft.Json;
+using Chat.Infrastructure.Messaging.Kafka;
 
 namespace Chat.DomainServices
 {
     internal class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicModel>>
     {
-        private readonly IEventBus _eventBus;
+        private readonly IExternalEventProducer _producer;
         private readonly ILogger<BusAdapter> _logger;
 
         public BusAdapter(
-            IEventBus eventBus,
+            IExternalEventProducer producer,
             ILogger<BusAdapter> logger)
         {
-            _eventBus = eventBus;
+            _producer = producer;
             _logger = logger;   
         }
 
-        public void OnCompleted()
-        {
-            throw new NotImplementedException();
-        }
+        public void OnCompleted() 
+            => throw new NotImplementedException();
 
-        public void OnError(Exception error)
-        {
-            throw new NotImplementedException();
-        }
+        public void OnError(Exception error) 
+            => throw new NotImplementedException();
 
         public void OnNext(AggregateResult<IChat, IChatAnemicModel> value)
         {
             var message = JsonConvert.SerializeObject(value.ChangeValueObjects);
             _logger.LogInformation($"DE! Command version:{value.Event.Command.Version}; vos: {message}");
 
-            _eventBus.Publish(value.Event);
+            _producer.Publish(value.Event);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace Chat.Domain.Abstraction
         /// <summary>
         /// Сообщения.
         /// </summary>
-        IEnumerable<IChatMessage> Messages { get; }
+        IReadOnlyCollection<IChatMessage> Messages { get; }
 
         /// <summary>
         /// Данные пользователя.

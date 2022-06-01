@@ -19,6 +19,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.InternalContracts", "C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Contracts", "Chat.Contracts\Chat.Contracts.csproj", "{DBC56AB4-46F8-41E7-87BC-494959A4F2F8}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chat.Infrastructure", "Chat.Infrastructure\Chat.Infrastructure.csproj", "{01CA3F1C-31D0-4729-A2C7-C44AEC78BC05}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hive.SeedWorks", "..\..\Hive\Source\Hive.SeedWorks.csproj", "{902B4AB8-6A13-4601-8FA3-D85AB9E3AA33}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{DBC56AB4-46F8-41E7-87BC-494959A4F2F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBC56AB4-46F8-41E7-87BC-494959A4F2F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBC56AB4-46F8-41E7-87BC-494959A4F2F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01CA3F1C-31D0-4729-A2C7-C44AEC78BC05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01CA3F1C-31D0-4729-A2C7-C44AEC78BC05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01CA3F1C-31D0-4729-A2C7-C44AEC78BC05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01CA3F1C-31D0-4729-A2C7-C44AEC78BC05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{902B4AB8-6A13-4601-8FA3-D85AB9E3AA33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{902B4AB8-6A13-4601-8FA3-D85AB9E3AA33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{902B4AB8-6A13-4601-8FA3-D85AB9E3AA33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{902B4AB8-6A13-4601-8FA3-D85AB9E3AA33}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

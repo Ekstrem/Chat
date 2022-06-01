@@ -1,6 +1,4 @@
-﻿using Chat.Domain;
-using Chat.Domain.Abstraction;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Chat.Storage
 {
@@ -8,16 +6,15 @@ namespace Chat.Storage
     {
         public CommandDbContext(DbContextOptions<DbContext> options) : base(options)
         {
+            Database.Migrate();
         }
 
-        //public DbSet<SlobEntry<IChatAnemicModel, IChat>> Entries { get; set; }
         public DbSet<DomainEventEntry> Events { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
             => modelBuilder
                 .HasAnnotation("ProductVersion", "0.0.1")
                 .HasDefaultSchema("Commands")
-                //.ApplyConfiguration(new SlobMapping())
                 .ApplyConfiguration(new DomainEventMapping());
 
     }

@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using Chat.InternalContracts.Messaging;
 using Hive.SeedWorks.Characteristics;
 using Hive.SeedWorks.Definition;
 using Hive.SeedWorks.Events;
 using Hive.SeedWorks.Result;
 using Hive.SeedWorks.TacticalPatterns;
-using MediatR;
 
 namespace Chat.InternalContracts
 {
-    public class BusDomainEventCommand<T> : INotification, IDomainEvent<T>
+    public class BusDomainEventCommand<T> : IDomainEvent<T>, IMessage
         where T : IBoundedContext
     {
-        private readonly IDomainEvent<IBoundedContext> _domainEvent;
+        private readonly IDomainEvent<T> _domainEvent;
 
-        public BusDomainEventCommand(IDomainEvent<IBoundedContext> domainEvent)
+        public BusDomainEventCommand(IDomainEvent<T> domainEvent)
         {
             _domainEvent = domainEvent;
         }

@@ -40,7 +40,7 @@ namespace Chat.DomainServices
 
         public IChatRoot Root => Aggregate.Root;
 
-        public IEnumerable<IChatMessage> Messages => Aggregate.Messages;
+        public IReadOnlyCollection<IChatMessage> Messages => Aggregate.Messages;
 
         public IChatActor Actor => Aggregate.Actor;
 

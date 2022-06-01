@@ -19,7 +19,7 @@ namespace Chat.Domain.Implementation
 
         public static Aggregate Create(IChatAnemicModel anemicModel) => new Aggregate(anemicModel);
 
-        #region Aggregate tech  props
+        #region Aggregate tech props
 
         public Guid Id => _anemicModel.Id;
 
@@ -56,7 +56,7 @@ namespace Chat.Domain.Implementation
         /// <summary>
         /// Сообщения.
         /// </summary>
-        public IEnumerable<IChatMessage> Messages => _anemicModel.Messages;
+        public IReadOnlyCollection<IChatMessage> Messages => _anemicModel.Messages;
 
         #endregion
 
@@ -67,7 +67,8 @@ namespace Chat.Domain.Implementation
             => BusinessOperationData
                 .Commit(_anemicModel, model)
                 .ValidateCommand(
-                    new IsNewSubscriberRequestValidator());
+                    new IsNewSubscriberRequestValidator())
+                .PipeTo(r => new ChatResult(r));
 
         /// <summary>
         /// Бот ответил пользователю.
@@ -76,8 +77,8 @@ namespace Chat.Domain.Implementation
             => AnemicModel
                 .Create(
                     _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
+                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, new List<IChatMessage>(_anemicModel.Messages.Concat(model.Messages)))
+                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, Enumerable.Empty<string>()));
 
         /// <summary>
         /// Оператор получил обращение на обработку.
@@ -92,8 +93,8 @@ namespace Chat.Domain.Implementation
             => AnemicModel
                 .Create(
                     _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
+                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, new List<IChatMessage>(_anemicModel.Messages.Concat(model.Messages)))
+                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, Enumerable.Empty<string>()));
 
         /// <summary>
         /// Оператор уточник вопрос.
@@ -102,8 +103,8 @@ namespace Chat.Domain.Implementation
             => AnemicModel
                 .Create(
                     _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
+                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, new List<IChatMessage>(_anemicModel.Messages.Concat(model.Messages)))
+                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, Enumerable.Empty<string>()));
 
         /// <summary>
         /// Абонент оценил работу.
@@ -113,7 +114,7 @@ namespace Chat.Domain.Implementation
                 .Create(
                     _anemicModel.Id, commandMetadata,
                     _anemicModel.Root, _anemicModel.Actor, model.Feedback, _anemicModel.Messages)
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
+                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, Enumerable.Empty<string>()));
 
         /// <summary>
         /// Абонент загрузил медиа-контент.

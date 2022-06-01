@@ -30,10 +30,12 @@ namespace Chat.Api.Controllers
         [HttpPost("InitDialogByCall")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         public async Task<IActionResult> StartDialog([FromBody] StartDialogRequest request)
-        {
-            var command = RequestQuestionCommand.CreateInstanceByIncommingCall(request.UserName, request.Message, _contextAccessor.CorrelationId);
-            return (await _mediator.Send(command))
-                .PipeTo(dialogId => Created("api/Queries/Info", dialogId));
-        }
+            => RequestQuestionCommand
+                    .CreateInstanceByIncommingCall(
+                        request.UserName,
+                        request.Message,
+                        _contextAccessor.CorrelationId)
+                    .PipeTo(async command => await _mediator.Send(command))
+                    .PipeTo(dialogId => Created("api/Queries/Info", dialogId));
     }
 }

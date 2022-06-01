@@ -17,7 +17,7 @@ namespace Chat.Domain.Implementation
         private readonly IChatRoot _root;
         private readonly IChatActor _actor;
         private readonly IChatFeedback _feedback;
-        private readonly IEnumerable<IChatMessage> _messages;
+        private readonly IReadOnlyCollection<IChatMessage> _messages;
 
         protected AnemicModel(
             Guid id,
@@ -28,7 +28,7 @@ namespace Chat.Domain.Implementation
             IChatRoot root,
             IChatActor actor,
             IChatFeedback feedback,
-            IEnumerable<IChatMessage> messages)
+            IReadOnlyCollection<IChatMessage> messages)
         {
             _id = id;
             _version = version;
@@ -81,7 +81,7 @@ namespace Chat.Domain.Implementation
         /// <summary>
         /// Сообщения.
         /// </summary>
-        public IEnumerable<IChatMessage> Messages => _messages;
+        public IReadOnlyCollection<IChatMessage> Messages => _messages;
 
         public static IChatAnemicModel Create(
             Guid id,
@@ -92,7 +92,7 @@ namespace Chat.Domain.Implementation
             IChatRoot root,
             IChatActor actor,
             IChatFeedback feedback,
-            IEnumerable<IChatMessage> messages)
+            IReadOnlyCollection<IChatMessage> messages)
             => new AnemicModel(id, version,
                 correlationToken, commandName, subjectName,
                 root, actor, feedback, messages);
@@ -103,7 +103,7 @@ namespace Chat.Domain.Implementation
             IChatRoot root,
             IChatActor actor,
             IChatFeedback feedback,
-            IEnumerable<IChatMessage> messages)
+            IReadOnlyCollection<IChatMessage> messages)
             => new AnemicModel(id,
                 command.Version, command.CorrelationToken, command.CommandName, command.SubjectName,
                 root, actor, feedback, messages);

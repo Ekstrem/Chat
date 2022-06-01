@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using Chat.InternalContracts;
 using Hive.SeedWorks.Characteristics;
 using Hive.SeedWorks.Events;
 using Hive.SeedWorks.Result;
+using Hive.SeedWorks.TacticalPatterns;
 
 namespace Chat.Storage
 {
@@ -21,10 +24,10 @@ namespace Chat.Storage
 
         public string SubjectName { get; set; }
 
-        //public IDictionary<string, IValueObject> ChangedValueObjects
-        //    => ValueObjects
-        //        .ToAnemicModel(AggregateId, AggregateVersion, CorrelationToken, CommandName, SubjectName)
-        //        .GetValueObjects();
+        public IDictionary<string, IValueObject> ChangedValueObjects
+            => ValueObjects
+                .ToAnemicModel(AggregateId, AggregateVersion, CorrelationToken, CommandName, SubjectName)
+                .GetValueObjects();
 
         public ICommandToAggregate Command
             => CommandToAggregate.Commit(CorrelationToken, CommandName, SubjectName, Version);
