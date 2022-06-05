@@ -1,4 +1,9 @@
 ﻿namespace Chat.Contracts.Views
 {
-    public record ChatInfoView(string UserName, IEnumerable<string> Messages);
+    public class ChatInfoView
+    {
+        public Guid Id { get; set; }
+        public string UserName { get; set; } 
+        public IEnumerable<string> Messages { get; set; }
+    }
 }

@@ -34,16 +34,19 @@ namespace Chat.Api
                         {"bootstrap.servers", Configuration.GetSection("kafka:brokerList").Get<string>()}
                     }
                     .Concat(
-                        Configuration.GetSection("kafka:consumers:readModel").Get<Dictionary<string, string>>())
+                        Configuration
+                            .GetSection("kafka:consumers:readModel")
+                            .Get<Dictionary<string, string>>())
                     .ToDictionary(x => x.Key, x => x.Value);
-                o.Topics = new[] { Configuration.GetSection("kafka:topic").Get<string>() };
+
+                o.Topics = new[] 
+                { 
+                    Configuration
+                        .GetSection("kafka:topic")
+                        .Get<string>()
+                };
             });
             services.AddHostedService<EventBusConsumerService>();
-            /*
-            services.AddSingleton<EventMessageFactory>();
-            services.AddSingleton<EventBusMessageHandler>();
-            services.AddScoped<IEventBusConsumer, EventBusConsumer>();
-            */
 
             services.AddControllers(options => { })
                 .AddControllersAsServices();

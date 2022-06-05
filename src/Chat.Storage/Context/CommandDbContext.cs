@@ -4,10 +4,8 @@ namespace Chat.Storage
 {
     internal sealed class CommandDbContext : DbContext
     {
-        public CommandDbContext(DbContextOptions<DbContext> options) : base(options)
-        {
-            Database.Migrate();
-        }
+        public CommandDbContext(DbContextOptions<DbContext> options) : base(options) 
+            => Database.Migrate();
 
         public DbSet<DomainEventEntry> Events { get; set; }
 

@@ -7,13 +7,12 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="11.0.1" />
     <PackageReference Include="FluentValidation" Version="10.3.6" />
-    <PackageReference Include="MediatR" Version="10.0.1" />
-    <PackageReference Include="MediatR.Extensions.Autofac.DependencyInjection" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Chat.Contracts\Chat.Contracts.csproj" />
     <ProjectReference Include="..\Chat.DomainServices\Chat.DomainServices.csproj" />
+    <ProjectReference Include="..\Chat.MaterializedView\Chat.MaterializedView.csproj" />
   </ItemGroup>
 
 </Project>

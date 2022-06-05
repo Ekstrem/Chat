@@ -22,7 +22,11 @@ namespace Chat.Application
         }
 
         public static IMapper InitAutoMapper()
-            => new MapperConfiguration(x => x.AddProfile<AggregateProfile>())
+            => new MapperConfiguration(x =>
+                {
+                    x.AddProfile<AggregateProfile>();
+                    x.AddProfile<MaterializedViewProfile>();
+                })
                 .PipeTo(config => config.CreateMapper());
     }
 }

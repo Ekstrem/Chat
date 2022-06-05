@@ -15,7 +15,8 @@ namespace Chat.Api
                 .RegisterModule<Infrastructure.RegisterDependencies>()
                 .RegisterModule<DomainServices.RegisterDependencies>()
                 .RegisterModule<Application.RegisterDependencies>()
-                .RegisterModule<Storage.RegisterDependencies>();
+                .RegisterModule<Storage.RegisterDependencies>()
+                .RegisterModule<MaterializedView.RegisterDependencies>();
 
             builder
                 .Register(c => c

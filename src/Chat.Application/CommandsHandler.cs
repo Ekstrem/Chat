@@ -54,7 +54,7 @@ namespace Chat.Application.Commands
 
             return _provider.CreateAggregate()
                 .PipeTo(aggregate => aggregate.SubscriberRequestQuestion(model))
-                .PipeTo(result => result.BusinessOperationData.Model.Id)
+                .PipeTo(result => result.BusinessOperationData.Aggregate.Id)
                 .PipeTo(Task.FromResult);
         }
 

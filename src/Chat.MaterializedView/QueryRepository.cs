@@ -1,14 +1,14 @@
 ﻿using Chat.InternalContracts;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 using Ardalis.Specification;
 using Ardalis.Specification.EntityFrameworkCore;
+using Hive.SeedWorks.Monads;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-using Hive.SeedWorks.Monads;
 
-namespace Chat.Storage
+namespace Chat.MaterializedView
 {
     // TODO: move to hive
     internal class QueryRepository<TModel> : IQueryRepository<TModel>
@@ -16,7 +16,7 @@ namespace Chat.Storage
     {
         private readonly DbContext _context;
 
-        public QueryRepository(DbContext context) 
+        public QueryRepository(DbContext context)
             => _context = context;
 
         async Task<int> IQueryRepository<TModel>.CountAsync(ISpecification<TModel> spec, CancellationToken cancellationToken)

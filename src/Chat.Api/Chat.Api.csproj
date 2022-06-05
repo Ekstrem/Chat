@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chat.Application\Chat.Application.csproj" />
+    <ProjectReference Include="..\Chat.MaterializedView\Chat.MaterializedView.csproj" />
     <ProjectReference Include="..\Chat.Storage\Chat.Storage.csproj" />
   </ItemGroup>
 

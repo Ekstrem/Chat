@@ -9,38 +9,11 @@ using System;
 
 namespace Chat.Application.Mappers
 {
-    public class AggregateProfile : Profile
+    internal class AggregateProfile : Profile
     {
         public AggregateProfile()
         {
             CreateMap<RequestQuestionCommand, IChatAnemicModel>();
-               
-                //.ConstructUsing(x => 
-                //{
-                //    return AnemicModel
-                //        .Create(
-                //           Guid.NewGuid(),
-                //            CreateCommandMetadata(
-                //                nameof(Aggregate.SubscriberRequestQuestion), 
-                //                x.CorrelationId),
-                //            ChatRoot.CreateInstance(
-                //                Guid.NewGuid(),
-                //                23453254),
-                //            ChatActor.CreateInstance(
-                //                x.UserName,
-                //                (byte)UserType.Client),
-                //            default,
-                //            new[]
-                //            {
-                //                ChatMessage
-                //                    .CreateInstance(
-                //                        x.Type,
-                //                        x.Message,
-                //                        Platform.Android,
-                //                        x.Application,
-                //                        Guid.Empty)
-                //            });
-                //});
         }
 
         public ICommandToAggregate CreateCommandMetadata(string commandName, Guid correlationToken, long version = 0)

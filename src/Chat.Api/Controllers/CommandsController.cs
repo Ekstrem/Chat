@@ -12,7 +12,7 @@ namespace Chat.Api.Controllers
 {
 
     [ApiController]
-    [Route("api/commands")]
+    [Route("api/[controller]")]
     public class CommandsController : Controller
     {
         private readonly IMediator _mediator;
@@ -27,15 +27,16 @@ namespace Chat.Api.Controllers
         /// <summary>
         /// Начать диалог.
         /// </summary>
-        [HttpPost("InitDialogByCall")]
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         public async Task<IActionResult> StartDialog([FromBody] StartDialogRequest request)
             => RequestQuestionCommand
-                    .CreateInstanceByIncommingCall(
-                        request.UserName,
-                        request.Message,
-                        _contextAccessor.CorrelationId)
-                    .PipeTo(async command => await _mediator.Send(command))
-                    .PipeTo(dialogId => Created("api/Queries/Info", dialogId));
+                .CreateInstanceByIncommingCall(
+                    request.UserName,
+                    request.Message,
+                    _contextAccessor.CorrelationId)
+                .PipeTo(async command => await _mediator.Send(command))
+                .PipeTo(r => r.GetAwaiter().GetResult())
+                .PipeTo(id => Created("api/Queries/{id}/Info", id));
     }
 }
