@@ -1,55 +1,63 @@
-﻿//using Chat.Domain.Abstraction;
-//using Chat.Domain.Implementation;
-//using Chat.InternalContracts;
-//using Newtonsoft.Json.Linq;
-//using System.Linq;
-//using Hive.SeedWorks.Monads;
+using Chat.Domain.Abstraction;
+using Chat.Domain.Implementation;
+using Chat.InternalContracts;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Linq;
+using Hive.SeedWorks.Monads;
 
-//namespace Chat.DomainServices
-//{
-//    public static class Extension
-//    {
-//        public static IChatAnemicModel ToAnemicModel(this ChatDomainEventCommand notification)
-//        {
-//            var root = notification.ChangedValueObjects.TryGetValue(
-//                        nameof(IChatAnemicModel.Root), out var rawRoot)
-//                    && rawRoot is ValueObject voRoot
-//                ? JObject.Parse(voRoot.Data.ToString())
-//                    .PipeTo(json => ChatRoot
-//                        .CreateInstance(
-//                            (string)json["UserId"],
-//                            (int)json["SessionId"]))
-//                : null;
+namespace Chat.DomainServices
+{
+    public static class Extension
+    {
+        /// <summary>
+        /// Восстанавливает анемичную модель из команды доменного события.
+        /// </summary>
+        public static IChatAnemicModel ToAnemicModel(this ChatDomainEventCommand notification)
+        {
+            var root = notification.ChangedValueObjects.TryGetValue(
+                        nameof(IChatAnemicModel.Root), out var rawRoot)
+                    && rawRoot != null
+                ? JsonConvert.SerializeObject(rawRoot)
+                    .PipeTo(JObject.Parse)
+                    .PipeTo(json => ChatRoot
+                        .CreateInstance(
+                            json["UserId"].Value<string>()
+                                .PipeTo(System.Guid.Parse),
+                            json["SessionId"].Value<int>()))
+                : null;
 
-//            var actor = notification.ChangedValueObjects.TryGetValue(
-//                        nameof(IChatAnemicModel.Actor), out var rawActor)
-//                    && rawActor is ValueObject voActor
-//                ? JObject.Parse(voActor.Data.ToString())
-//                    .PipeTo(json => ChatActor
-//                        .CreateInstance(
-//                            (string)json["Login"],
-//                            (UserType)json["Type"]))
-//                : null;
+            var actor = notification.ChangedValueObjects.TryGetValue(
+                        nameof(IChatAnemicModel.Actor), out var rawActor)
+                    && rawActor != null
+                ? JsonConvert.SerializeObject(rawActor)
+                    .PipeTo(JObject.Parse)
+                    .PipeTo(json => ChatActor
+                        .CreateInstance(
+                            json["Login"].Value<string>(),
+                            json["Type"].Value<int>()
+                                .PipeTo(t => (UserType)t)))
+                : null;
 
-//            var feedback = notification.ChangedValueObjects.TryGetValue(
-//                        nameof(IChatAnemicModel.Feedback), out var rawFeedback)
-//                    && rawFeedback is ValueObject voFeedback
-//                ? JObject.Parse(voFeedback.Data.ToString())
-//                    .PipeTo(json => ChatFeedback
-//                        // TODO: check arg
-//                        .CreateInstance(
-//                            (string)json["Text"]))
-//                : null;
+            var feedback = notification.ChangedValueObjects.TryGetValue(
+                        nameof(IChatAnemicModel.Feedback), out var rawFeedback)
+                    && rawFeedback != null
+                ? JsonConvert.SerializeObject(rawFeedback)
+                    .PipeTo(JObject.Parse)
+                    .PipeTo(json => json["Type"].Value<int>() == (int)AnswerType.Scores
+                        ? ChatFeedback.CreateByScores(json["Value"].Value<byte>())
+                        : ChatFeedback.CreateByText(json["Text"].Value<string>()))
+                : null;
 
-//            var messages = Enumerable.Empty<IChatMessage>();
+            var messages = Enumerable.Empty<IChatMessage>();
 
-//            return AnemicModel.Create(
-//                notification.AggregateId,
-//                notification.Command,
-//                root,
-//                actor,
-//                feedback,
-//                messages);
-//        }
-//    }
-//}
+            return AnemicModel.Create(
+                notification.AggregateId,
+                notification.Command,
+                root,
+                actor,
+                feedback,
+                messages);
+        }
+    }
+}

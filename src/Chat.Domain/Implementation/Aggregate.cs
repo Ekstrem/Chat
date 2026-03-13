@@ -83,7 +83,15 @@ namespace Chat.Domain.Implementation
         /// Оператор получил обращение на обработку.
         /// </summary>
         public AggregateResult<IChat, IChatAnemicModel> OperatorDequeueRequest(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => throw new NotImplementedException();
+            => AnemicModel
+                .Create(
+                    _anemicModel.Id, commandMetadata,
+                    _anemicModel.Root, model.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
+                .PipeTo(am => BusinessOperationData
+                    .Commit(_anemicModel, am)
+                    .ValidateCommand(
+                        new IsNotAlreadyDequeuedValidator(),
+                        new IsSessionActiveValidator()));
 
         /// <summary>
         /// Оператор ответил на обращение.
@@ -119,18 +127,33 @@ namespace Chat.Domain.Implementation
         /// Абонент загрузил медиа-контент.
         /// </summary>
         public AggregateResult<IChat, IChatAnemicModel> SubscriberDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => throw new NotImplementedException();
+            => AnemicModel
+                .Create(
+                    _anemicModel.Id, commandMetadata,
+                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
+                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
 
         /// <summary>
         /// Оператор загрузил медиа-контент.
         /// </summary>
         public AggregateResult<IChat, IChatAnemicModel> OperatorDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => throw new NotImplementedException();
+            => AnemicModel
+                .Create(
+                    _anemicModel.Id, commandMetadata,
+                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
+                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
 
         /// <summary>
         /// Сессия закончилась по триггеру.
         /// </summary>
         public AggregateResult<IChat, IChatAnemicModel> SessionEndingByTrigger(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => throw new NotImplementedException();
+            => AnemicModel
+                .Create(
+                    _anemicModel.Id, commandMetadata,
+                    _anemicModel.Root, _anemicModel.Actor, model.Feedback, _anemicModel.Messages)
+                .PipeTo(am => BusinessOperationData
+                    .Commit(_anemicModel, am)
+                    .ValidateCommand(
+                        new IsSessionActiveValidator()));
     }
 }

@@ -36,6 +36,59 @@ namespace Chat.Domain.Tests
                     });
         }
 
+        /// <summary>
+        /// Создаёт модель существующего активного чата (с Root и актором-клиентом).
+        /// Используется как начальное состояние агрегата для тестирования последующих операций.
+        /// </summary>
+        public static IChatAnemicModel CreateExistingActiveChat(Guid id)
+        {
+            var userRequest = QuestionBuilder.DefaultUserRequest();
+
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.SubscriberRequestQuestion)
+                        .CreateCommandMetadata(),
+                    ChatRoot.CreateInstance(userRequest.UserId, userRequest.SessionId),
+                    ChatActor.CreateInstance(userRequest.UserLogin, UserType.Client),
+                    default,
+                    new[]
+                    {
+                        ChatMessage.CreateInstance(
+                            userRequest.Type,
+                            userRequest.Text,
+                            userRequest.Platform,
+                            userRequest.Application,
+                            userRequest.ContentId)
+                    });
+        }
+
+        /// <summary>
+        /// Создаёт модель чата, который уже взят оператором (Actor = Operator).
+        /// </summary>
+        public static IChatAnemicModel CreateAlreadyDequeuedChat(Guid id)
+        {
+            var userRequest = QuestionBuilder.DefaultUserRequest();
+
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.OperatorDequeueRequest)
+                        .CreateCommandMetadata(),
+                    ChatRoot.CreateInstance(userRequest.UserId, userRequest.SessionId),
+                    ChatActor.CreateInstance("Оператор Петров", UserType.Operator),
+                    default,
+                    new[]
+                    {
+                        ChatMessage.CreateInstance(
+                            userRequest.Type,
+                            userRequest.Text,
+                            userRequest.Platform,
+                            userRequest.Application,
+                            userRequest.ContentId)
+                    });
+        }
+
         public static IChatAnemicModel CreateFeedbackModel(Guid id)
         {
             return AnemicModel
@@ -46,6 +99,59 @@ namespace Chat.Domain.Tests
                     default,
                     default,
                     ChatFeedback.CreateByText("нуштош сойдет"),
+                    default);
+        }
+
+        public static IChatAnemicModel CreateFeedbackByScoresModel(Guid id)
+        {
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.SubscriberGaveFeedback)
+                        .CreateCommandMetadata(),
+                    default,
+                    default,
+                    ChatFeedback.CreateByScores(5),
+                    default);
+        }
+
+        /// <summary>
+        /// Модель бот-ответа с сообщением.
+        /// </summary>
+        public static IChatAnemicModel CreateBotReplyModel(Guid id)
+        {
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.BotRepliedToUser)
+                        .CreateCommandMetadata(),
+                    default,
+                    default,
+                    default,
+                    new[]
+                    {
+                        ChatMessage.CreateInstance(
+                            MessageType.Text,
+                            "Автоматический ответ бота",
+                            Platform.Windows,
+                            Application.Site,
+                            Guid.Empty)
+                    });
+        }
+
+        /// <summary>
+        /// Модель для завершения сессии.
+        /// </summary>
+        public static IChatAnemicModel CreateSessionEndModel(Guid id)
+        {
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.SessionEndingByTrigger)
+                        .CreateCommandMetadata(),
+                    default,
+                    default,
+                    default,
                     default);
         }
     }

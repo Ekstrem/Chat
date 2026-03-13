@@ -2,9 +2,9 @@
 
 namespace Chat.Storage
 {
-    internal sealed class CommandDbContext : DbContext
+    public sealed class CommandDbContext : DbContext
     {
-        public CommandDbContext(DbContextOptions<DbContext> options) : base(options)
+        public CommandDbContext(DbContextOptions<CommandDbContext> options) : base(options)
         {
         }
 
