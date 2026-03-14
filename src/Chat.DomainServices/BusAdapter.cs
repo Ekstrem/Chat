@@ -23,12 +23,12 @@ namespace Chat.DomainServices
 
         public void OnCompleted()
         {
-            throw new NotImplementedException();
+            _logger.LogInformation("Поток доменных событий завершён.");
         }
 
         public void OnError(Exception error)
         {
-            throw new NotImplementedException();
+            _logger.LogError(error, "Ошибка в потоке доменных событий.");
         }
 
         public void OnNext(AggregateResult<IChat, IChatAnemicModel> value)

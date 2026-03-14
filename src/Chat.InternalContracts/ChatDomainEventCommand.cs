@@ -1,4 +1,4 @@
-﻿using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using System;
 using System.Collections.Generic;
 

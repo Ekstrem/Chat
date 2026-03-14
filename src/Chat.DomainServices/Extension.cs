@@ -1,4 +1,4 @@
-﻿//using Chat.Domain.Abstraction;
+//using Chat.Domain.Abstraction;
 //using Chat.Domain.Implementation;
 //using Chat.InternalContracts;
 //using Newtonsoft.Json.Linq;
