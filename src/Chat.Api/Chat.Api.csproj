@@ -2,25 +2,21 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="9.0.0" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.2.5" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Chat.Application\Chat.Application.csproj" />
-    <ProjectReference Include="..\Chat.DomainServices\Chat.DomainServices.csproj" />
     <ProjectReference Include="..\Chat.Storage\Chat.Storage.csproj" />
-    <ProjectReference Include="..\Chat.Storage.Postgres\Chat.Storage.Postgres.csproj" />
-    <ProjectReference Include="..\Chat.Storage.Mongo\Chat.Storage.Mongo.csproj" />
+    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\EventBus.InMemory\DigiTFactory.Libraries.EventBus.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\EventBus.Kafka\DigiTFactory.Libraries.EventBus.Kafka.csproj" />
+    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\EventBus.Postgres\DigiTFactory.Libraries.EventBus.Postgres.csproj" />
   </ItemGroup>
 
 </Project>

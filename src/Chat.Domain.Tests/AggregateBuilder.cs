@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
 

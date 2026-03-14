@@ -1,122 +1,117 @@
-using System;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using Chat.Application;
-using Chat.Application.Behaviors;
+using Chat.Application.Commands;
 using Chat.DomainServices;
-using Chat.DomainServices.Consumers;
+using Chat.InternalContracts;
 using Chat.Storage;
-using Chat.Storage.Postgres;
-using DigiTFactory.Libraries.CommandRepository.Postgres;
-using DigiTFactory.Libraries.CommandRepository.Postgres.Configuration;
-// using Chat.Storage.Mongo;
-// using DigiTFactory.Libraries.CommandRepository.Mongo.Configuration;
-// using MongoStrategy = DigiTFactory.Libraries.CommandRepository.Mongo.Configuration.EventStoreStrategy;
+using DigiTFactory.Libraries.EventBus.InMemory.Extensions;
+using DigiTFactory.Libraries.EventBus.Kafka.Extensions;
+using DigiTFactory.Libraries.EventBus.Postgres.Extensions;
 using MassTransit;
-using MediatR;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Autofac
+var host = builder.Host;
+host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+{
+    containerBuilder.RegisterModule<RegisterDependencies>();
+});
+
+// EF Core + PostgreSQL
+var connectionString = builder.Configuration.GetConnectionString("ChatDb");
+builder.Services.AddDbContext<CommandDbContext>(options =>
+    options.UseNpgsql(connectionString,
+        npgsql => npgsql.MigrationsAssembly("Chat.Storage")));
+
+// Repository и QueryRepository
+builder.Services.AddScoped<IQueryRepository<DomainEventEventEntry>, QueryRepository<DomainEventEventEntry>>();
+builder.Services.AddScoped<IRepository, Repository>();
 
 // ======================================================
-// Выбор СУБД для Event Store.
-// Раскомментируйте ОДНУ из секций ниже.
+// EventBus — выбор реализации через appsettings.json
 // ======================================================
+var eventBusSection = builder.Configuration.GetSection("EventBus");
+var eventBusStrategy = eventBusSection["Strategy"] ?? "InMemory";
 
-// --- PostgreSQL ---
-builder.Services.AddChatPostgresStorage(
-    builder.Configuration.GetConnectionString("CommandDb")!,
-    options =>
-    {
-        var section = builder.Configuration.GetSection("EventStore");
-        if (Enum.TryParse<EventStoreStrategy>(section["Strategy"], out var strategy))
-            options.Strategy = strategy;
-        if (int.TryParse(section["SnapshotInterval"], out var interval))
-            options.SnapshotInterval = interval;
-        options.SchemaName = section["SchemaName"] ?? "Commands";
-    });
+switch (eventBusStrategy)
+{
+    case "Kafka":
+        builder.Services.AddEventBusKafka(options =>
+        {
+            var kafka = eventBusSection.GetSection("Kafka");
+            options.BootstrapServers = kafka["BootstrapServers"] ?? "localhost:9092";
+            options.TopicPrefix = kafka["TopicPrefix"] ?? "chat-events";
+            options.GroupId = kafka["GroupId"] ?? "chat-group";
+        });
+        break;
 
-// --- MongoDB ---
-// builder.Services.AddChatMongoStorage(
-//     builder.Configuration.GetConnectionString("CommandDb")!,
-//     options =>
-//     {
-//         var mongoSection = builder.Configuration.GetSection("MongoEventStore");
-//         options.ConnectionString = mongoSection["ConnectionString"] ?? "mongodb://localhost:27017";
-//         options.DatabaseName = mongoSection["DatabaseName"] ?? "ChatEventStore";
-//         if (Enum.TryParse<MongoStrategy>(mongoSection["Strategy"], out var strategy))
-//             options.Strategy = strategy;
-//         if (int.TryParse(mongoSection["SnapshotInterval"], out var interval))
-//             options.SnapshotInterval = interval;
-//     });
+    case "Postgres":
+        builder.Services.AddEventBusPostgres(options =>
+        {
+            var pg = eventBusSection.GetSection("Postgres");
+            options.ConnectionString = pg["ConnectionString"]
+                ?? builder.Configuration.GetConnectionString("ChatDb")!;
+            options.TableName = pg["TableName"] ?? "domain_events_outbox";
+            if (int.TryParse(pg["PollingInterval"], out var interval))
+                options.PollingInterval = TimeSpan.FromSeconds(interval);
+            if (int.TryParse(pg["BatchSize"], out var batch))
+                options.BatchSize = batch;
+        });
+        break;
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatOperationResult).Assembly));
-
-// Register pipeline behaviors
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
+    case "InMemory":
+    default:
+        builder.Services.AddEventBusInMemory();
+        break;
+}
 
 // MassTransit + RabbitMQ
+var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumer<DomainEventConsumer>();
-
     x.UsingRabbitMq((context, cfg) =>
     {
-        var rabbitConfig = builder.Configuration.GetSection("RabbitMQ");
-        cfg.Host(rabbitConfig["Host"] ?? "localhost", h =>
+        cfg.Host(rabbitMqConfig["Host"] ?? "localhost", "/", h =>
         {
-            h.Username(rabbitConfig["Username"] ?? "guest");
-            h.Password(rabbitConfig["Password"] ?? "guest");
+            h.Username(rabbitMqConfig["Username"] ?? "guest");
+            h.Password(rabbitMqConfig["Password"] ?? "guest");
         });
 
-        cfg.ReceiveEndpoint("chat-events", e =>
-        {
-            e.ConfigureConsumer<DomainEventConsumer>(context);
-        });
+        cfg.ConfigureEndpoints(context);
     });
 });
 
-// Autofac for DomainServices
-builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
-builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
-    containerBuilder.RegisterModule<RegisterDependencies>());
+// MediatR
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(SubscriberRequestQuestionCommand).Assembly));
 
-// CORS
-builder.Services.AddCors(options =>
-    options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
-
-// Health checks
-builder.Services.AddHealthChecks();
+// Controllers + Swagger
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Chat Microservice API",
+        Version = "v1",
+        Description = "Reference DDD/CQRS/Event Sourcing microservice"
+    });
+});
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI();
-
-    // Auto-create DB in dev
-    using var scope = app.Services.CreateScope();
-    var eventStoreDb = scope.ServiceProvider.GetRequiredService<EventStoreDbContext>();
-    eventStoreDb.Database.EnsureCreated();
-    var readModelDb = scope.ServiceProvider.GetRequiredService<CommandDbContext>();
-    readModelDb.Database.EnsureCreated();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Chat API v1"));
 }
 
-app.UseCors();
+app.UseRouting();
+app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health");
 
 app.Run();

@@ -1,12 +1,14 @@
-using System;
 using MediatR;
+using System;
 
 namespace Chat.Application.Commands
 {
+    /// <summary>
+    /// Команда: оператор ответил на обращение.
+    /// </summary>
     public class OperatorRepliedToMessageCommand : IRequest<ChatOperationResult>
     {
         public Guid AggregateId { get; set; }
-        public Guid CorrelationToken { get; set; }
-        public string Message { get; set; } = string.Empty;
+        public string MessageText { get; set; }
     }
 }

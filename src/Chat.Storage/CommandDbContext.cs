@@ -1,23 +1,20 @@
-using Chat.Storage.ReadModels;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Chat.Storage
 {
-    /// <summary>
-    /// Chat-специфичный DbContext для Read Models.
-    /// Таблица Events теперь управляется EventStoreDbContext из библиотеки CommandRepository.Postgres.
-    /// </summary>
-    public class CommandDbContext : DbContext
+    public sealed class CommandDbContext : DbContext
     {
         public CommandDbContext(DbContextOptions<CommandDbContext> options) : base(options)
         {
         }
 
-        public DbSet<ChatReadModel> ChatReadModels { get; set; }
+        public DbSet<DomainEventEventEntry> Events { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
             => modelBuilder
+                .HasAnnotation("ProductVersion", "0.0.1")
                 .HasDefaultSchema("Commands")
-                .ApplyConfiguration(new ChatReadModelConfiguration());
+                .ApplyConfiguration(new DomainEventMapping());
+
     }
 }

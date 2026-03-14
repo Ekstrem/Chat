@@ -1,12 +1,14 @@
-using System;
 using MediatR;
+using System;
 
 namespace Chat.Application.Commands
 {
+    /// <summary>
+    /// Команда: оператор взял обращение на обработку.
+    /// </summary>
     public class OperatorDequeueRequestCommand : IRequest<ChatOperationResult>
     {
         public Guid AggregateId { get; set; }
-        public Guid CorrelationToken { get; set; }
-        public string OperatorName { get; set; } = string.Empty;
+        public string OperatorLogin { get; set; }
     }
 }

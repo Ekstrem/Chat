@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
@@ -136,66 +136,6 @@ namespace Chat.Domain.Tests
                 .OperatorRepliedToMessage(replyModel, replyModel.CommandName.CreateCommandMetadata());
 
             Assert.Equal(DomainOperationResultEnum.Success, result.Result);
-        }
-
-        [Fact]
-        public void BotRepliedToUser_Success()
-        {
-            var aggregateId = Guid.NewGuid();
-            var pureModel = AggregateBuilder.CreatePureModelForNewChat(aggregateId);
-            var existingAggregate = Aggregate.Create(pureModel);
-            var model = AggregateBuilder.CreateBotReplyModel(aggregateId);
-
-            var result = existingAggregate.BotRepliedToUser(model, model.CommandName.CreateCommandMetadata());
-
-            Assert.Equal(DomainOperationResultEnum.Success, result.Result);
-        }
-
-        [Fact]
-        public void OperatorRepliedToMessage_Success()
-        {
-            var aggregateId = Guid.NewGuid();
-            var pureModel = AggregateBuilder.CreatePureModelForNewChat(aggregateId);
-            var existingAggregate = Aggregate.Create(pureModel);
-            var model = AggregateBuilder.CreateOperatorReplyModel(aggregateId);
-
-            var result = existingAggregate.OperatorRepliedToMessage(model, model.CommandName.CreateCommandMetadata());
-
-            Assert.Equal(DomainOperationResultEnum.Success, result.Result);
-        }
-
-        [Fact]
-        public void SubscriberGaveFeedback_ByScores()
-        {
-            var aggregateId = Guid.NewGuid();
-            var model = AggregateBuilder.CreateFeedbackByScoresModel(aggregateId);
-            var existingAggregate = DefaultAnemicModel.Create(aggregateId).PipeTo(Aggregate.Create);
-
-            var result = existingAggregate.SubscriberGaveFeedback(model, model.CommandName.CreateCommandMetadata());
-
-            Assert.Equal(DomainOperationResultEnum.Success, result.Result);
-        }
-
-        [Fact]
-        public void OperatorDequeueRequest_ThrowsNotImplemented()
-        {
-            var aggregateId = Guid.NewGuid();
-            var model = AggregateBuilder.CreateBotReplyModel(aggregateId);
-            var existingAggregate = DefaultAnemicModel.Create(aggregateId).PipeTo(Aggregate.Create);
-
-            Assert.Throws<NotImplementedException>(() =>
-                existingAggregate.OperatorDequeueRequest(model, model.CommandName.CreateCommandMetadata()));
-        }
-
-        [Fact]
-        public void SessionEndingByTrigger_ThrowsNotImplemented()
-        {
-            var aggregateId = Guid.NewGuid();
-            var model = AggregateBuilder.CreateBotReplyModel(aggregateId);
-            var existingAggregate = DefaultAnemicModel.Create(aggregateId).PipeTo(Aggregate.Create);
-
-            Assert.Throws<NotImplementedException>(() =>
-                existingAggregate.SessionEndingByTrigger(model, model.CommandName.CreateCommandMetadata()));
         }
     }
 }

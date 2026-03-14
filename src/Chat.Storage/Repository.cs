@@ -1,40 +1,102 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Chat.Domain;
 using Chat.Domain.Abstraction;
+using Chat.Domain.Implementation;
 using Chat.DomainServices;
+using Chat.InternalContracts;
+using Chat.Storage.Specifications;
+using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Chat.Storage
 {
-    /// <summary>
-    /// Chat-специфичный репозиторий.
-    /// Делегирует хранение в IAnemicModelRepository (из SeedWorks),
-    /// который реализуется конкретной СУБД-библиотекой (Postgres или Mongo).
-    /// </summary>
-    internal sealed class Repository : IRepository
+    public class Repository : IRepository
     {
         private readonly ILogger<Repository> _logger;
-        private readonly IAnemicModelRepository<IChat, IChatAnemicModel> _store;
+        private readonly IQueryRepository<DomainEventEventEntry> _eventRepository;
+        private readonly CommandDbContext _dbContext;
 
         public Repository(
             ILogger<Repository> logger,
-            IAnemicModelRepository<IChat, IChatAnemicModel> store)
+            IQueryRepository<DomainEventEventEntry> eventRepository,
+            CommandDbContext dbContext)
         {
             _logger = logger;
-            _store = store;
+            _eventRepository = eventRepository;
+            _dbContext = dbContext;
         }
 
-        public Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
-            => _store.GetById(id, cancellationToken);
+        public async Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
+        {
+            var entries = await _eventRepository.ListAsync(new GetByIdSpec(id), cancellationToken);
+            if (entries == null || entries.Count == 0)
+                return new List<IChatAnemicModel>();
 
-        public Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
-            => _store.GetByIdAndVersion(id, version, cancellationToken);
+            return entries
+                .Select(ToAnemicModel)
+                .ToList();
+        }
 
-        public Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
-            => _store.GetByCorrelationToken(correlationToken, cancellationToken);
+        public async Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
+        {
+            var entry = await _eventRepository.FindByAsync(new GetByIdAndVersionSpec(id, version), cancellationToken);
+            return entry != null ? ToAnemicModel(entry) : DefaultAnemicModel.Create(id);
+        }
+
+        public async Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
+        {
+            var entry = await _eventRepository.FindByAsync(new GetByCorrelationTokenSpec(correlationToken), cancellationToken);
+            return entry != null ? ToAnemicModel(entry) : null;
+        }
+
+        /// <summary>
+        /// Сохранить доменное событие в хранилище.
+        /// </summary>
+        public async Task SaveEventAsync(IDomainEvent<IChat> domainEvent, CancellationToken cancellationToken = default)
+        {
+            var entry = new DomainEventEventEntry
+            {
+                Id = domainEvent.Id,
+                Version = domainEvent.Version,
+                CorrelationToken = domainEvent.Command.CorrelationToken,
+                CommandName = domainEvent.Command.CommandName,
+                SubjectName = domainEvent.Command.SubjectName,
+                ChangedValueObjectsJson = JsonConvert.SerializeObject(domainEvent.ChangedValueObjects),
+                BoundedContext = domainEvent.ContextName,
+                Result = (int)domainEvent.Result,
+                Reason = domainEvent.Reason != null ? string.Join("; ", domainEvent.Reason) : string.Empty,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            _dbContext.Events.Add(entry);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Событие сохранено: Id={Id}, Version={Version}, Command={Command}",
+                entry.Id, entry.Version, entry.CommandName);
+        }
+
+        private static IChatAnemicModel ToAnemicModel(DomainEventEventEntry entry)
+        {
+            var command = CommandToAggregate.Commit(
+                entry.CorrelationToken,
+                entry.CommandName,
+                entry.SubjectName,
+                entry.Version);
+
+            return AnemicModel.Create(
+                entry.Id,
+                command,
+                null,
+                null,
+                null,
+                Enumerable.Empty<IChatMessage>());
+        }
     }
 }

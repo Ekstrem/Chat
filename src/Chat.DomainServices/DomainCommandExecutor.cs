@@ -1,30 +1,56 @@
-//using Chat.Domain;
-//using Chat.Domain.Abstraction;
-//using Chat.Domain.Implementation;
-//using DigiTFactory.Libraries.SeedWorks.Monads;
-//using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
-//using System.Collections.Generic;
-//using System.Linq;
+using Chat.Domain;
+using Chat.Domain.Abstraction;
+using Chat.Domain.Implementation;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-//namespace Chat.DomainServices
-//{
-//    internal class DomainCommandExecutor:
-//        DomainCommandExecutor<IChat, IChatAggregate, IChatAnemicModel>
-//    {
-//        public DomainCommandExecutor(
-//            IChatAggregateProvider provider) : base(provider) 
-//        { }
+namespace Chat.DomainServices
+{
+    /// <summary>
+    /// Оркестратор выполнения команд к агрегату чата.
+    /// </summary>
+    public class DomainCommandExecutor
+    {
+        private readonly IChatAggregateProvider _provider;
 
-//        protected override IChatAnemicModel ToAnemicModel(IDictionary<string, IValueObject> valueObjects)
-//            => valueObjects.PipeTo(vos => AnemicModel.Create(
-//                AggregateId,
-//                AggregateVersion,
-//                CommandMetadata.CorrlationToken,
-//                CommandMetadata.CommandName,
-//                CommandMetadata.SubjectName,
-//                vos.TryGetValue(nameof(ChatRoot), out var root) ? (ChatRoot) root : null,
-//                vos.TryGetValue(nameof(ChatActor), out var actor) ? (ChatActor)actor : null,
-//                vos.TryGetValue(nameof(ChatFeedback), out var feedback) ? (ChatFeedback)feedback : null,
-//                Enumerable.Empty<ChatMessage>()));
-//    }
-//}
+        public DomainCommandExecutor(IChatAggregateProvider provider)
+        {
+            _provider = provider;
+        }
+
+        /// <summary>
+        /// Выполнить команду над агрегатом.
+        /// </summary>
+        public async Task<AggregateResult<IChat, IChatAnemicModel>> ExecuteAsync(
+            Guid aggregateId,
+            string commandName,
+            Func<IChatAggregate, AggregateResult<IChat, IChatAnemicModel>> operation,
+            CancellationToken cancellationToken = default)
+        {
+            var aggregate = await _provider.GetAggregateAsync(aggregateId, cancellationToken);
+            return operation(aggregate);
+        }
+
+        /// <summary>
+        /// Построить анемичную модель из словаря ValueObjects.
+        /// </summary>
+        public static IChatAnemicModel ToAnemicModel(
+            Guid aggregateId,
+            ICommandToAggregate command,
+            IDictionary<string, IValueObject> valueObjects)
+            => valueObjects.PipeTo(vos => AnemicModel.Create(
+                aggregateId,
+                command,
+                vos.TryGetValue(nameof(ChatRoot), out var root) ? (ChatRoot)root : null,
+                vos.TryGetValue(nameof(ChatActor), out var actor) ? (ChatActor)actor : null,
+                vos.TryGetValue(nameof(ChatFeedback), out var feedback) ? (ChatFeedback)feedback : null,
+                Enumerable.Empty<ChatMessage>()));
+    }
+}

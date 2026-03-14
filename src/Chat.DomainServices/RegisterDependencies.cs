@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using Autofac;
 using Chat.Domain;
 using Chat.Domain.Abstraction;
 using DigiTFactory.Libraries.SeedWorks;
+using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.Monads;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
@@ -23,8 +24,5 @@ namespace Chat.DomainServices
                 .Do(b => b
                     .RegisterType<BusAdapter>()
                     .As<IObserver<AggregateResult<IChat, IChatAnemicModel>>>());
-        //.Do(b =>b
-        //        .RegisterType<DomainCommandExecutor>()
-        //        .As<IDomainCommandExecutor<IChat, IChatAggregate>>());
     }
 }

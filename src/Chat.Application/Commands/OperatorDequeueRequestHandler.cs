@@ -1,43 +1,53 @@
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Chat.Domain.Abstraction;
+using Chat.Domain.Implementation;
 using Chat.DomainServices;
 using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using MediatR;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Chat.Application.Commands
 {
     public class OperatorDequeueRequestHandler : IRequestHandler<OperatorDequeueRequestCommand, ChatOperationResult>
     {
-        private readonly IChatAggregateProvider _aggregateProvider;
+        private readonly IChatAggregateProvider _provider;
 
-        public OperatorDequeueRequestHandler(IChatAggregateProvider aggregateProvider)
+        public OperatorDequeueRequestHandler(IChatAggregateProvider provider)
         {
-            _aggregateProvider = aggregateProvider;
+            _provider = provider;
         }
 
         public async Task<ChatOperationResult> Handle(OperatorDequeueRequestCommand request, CancellationToken cancellationToken)
         {
-            var aggregate = await _aggregateProvider.GetAggregateAsync(request.AggregateId, cancellationToken);
+            var aggregate = await _provider.GetAggregateAsync(request.AggregateId, cancellationToken);
 
-            var commandMetadata = CommandToAggregate.Commit(
-                request.CorrelationToken,
-                nameof(OperatorDequeueRequestCommand),
-                request.OperatorName);
+            var command = CommandToAggregate.Commit(
+                Guid.NewGuid(),
+                nameof(IChatAggregate.OperatorDequeueRequest),
+                "OperatorDequeueRequest",
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
-            var result = aggregate.OperatorDequeueRequest(aggregate, commandMetadata);
+            var model = AnemicModel.Create(
+                request.AggregateId, command,
+                null,
+                ChatActor.CreateInstance(request.OperatorLogin, UserType.Operator),
+                null,
+                Enumerable.Empty<IChatMessage>());
 
-            if (result.Result == DomainOperationResultEnum.Success)
+            var result = aggregate.OperatorDequeueRequest(model, command);
+
+            return new ChatOperationResult
             {
-                return ChatOperationResult.Success(
-                    request.AggregateId,
-                    aggregate.Version + 1,
-                    result.Result.ToString());
-            }
-
-            return ChatOperationResult.Failure(result.Reason.ToArray());
+                AggregateId = request.AggregateId,
+                Version = result.Event.Version,
+                Result = result.Result.ToString(),
+                Reason = result.Reason,
+                IsSuccess = result.Result == DomainOperationResultEnum.Success
+            };
         }
     }
 }

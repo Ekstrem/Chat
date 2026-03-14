@@ -1,10 +1,15 @@
-using System;
+using Chat.Domain.Abstraction;
 using MediatR;
+using System;
+using System.Collections.Generic;
 
 namespace Chat.Application.Queries
 {
-    public class GetChatByIdQuery : IRequest<ChatOperationResult>
+    /// <summary>
+    /// Запрос: получить чат по идентификатору.
+    /// </summary>
+    public class GetChatByIdQuery : IRequest<List<IChatAnemicModel>>
     {
-        public Guid AggregateId { get; set; }
+        public Guid AggregateId { get; init; }
     }
 }

@@ -24,23 +24,20 @@ namespace Chat.DomainServices
         }
 
         public async Task<IChatAggregate> GetAggregateAsync(Guid id, CancellationToken cancellationToken)
-            => ((await _repository.GetById(id, cancellationToken))?.FirstOrDefault() ?? DefaultAnemicModel.Create(id))
+            => ((await _repository.GetById(id, CancellationToken.None))?.FirstOrDefault() ?? DefaultAnemicModel.Create(id))
                 .PipeTo(DecorateModel);
 
         public async Task<IChatAggregate> GetAggregateAsync(Guid id, long version, CancellationToken cancellationToken)
-            => (await _repository.GetByIdAndVersion(id, version, cancellationToken) ?? DefaultAnemicModel.Create(id))
+            => (await _repository.GetByIdAndVersion(id, version, CancellationToken.None) ?? DefaultAnemicModel.Create(id))
                 .PipeTo(DecorateModel);
 
-        /// <summary>
-        /// Синхронная обёртка для Kafka/sync-контекстов.
-        /// Task.Run предотвращает deadlock, выполняя async-код в отдельном потоке ThreadPool,
-        /// не захватывая SynchronizationContext вызывающего потока.
-        /// </summary>
         public IChatAggregate GetAggregate(Guid id, long version)
-            => Task.Run(() => GetAggregateAsync(id, version, CancellationToken.None)).GetAwaiter().GetResult();
+            => GetAggregateAsync(id, version, CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
 
         public IChatAggregate GetAggregate(Guid id)
-            => Task.Run(() => GetAggregateAsync(id, CancellationToken.None)).GetAwaiter().GetResult();
+            => GetAggregateAsync(id, CancellationToken.None).Result;
 
         private IChatAggregate DecorateModel(IChatAnemicModel model)
             => model
