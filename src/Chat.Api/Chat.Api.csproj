@@ -12,11 +12,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DigiTFactory.Libraries.EventBus.InMemory" Version="0.1.0" />
+    <PackageReference Include="DigiTFactory.Libraries.EventBus.Kafka" Version="0.1.0" />
+    <PackageReference Include="DigiTFactory.Libraries.EventBus.Postgres" Version="0.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Chat.Application\Chat.Application.csproj" />
     <ProjectReference Include="..\Chat.Storage\Chat.Storage.csproj" />
-    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\EventBus.InMemory\DigiTFactory.Libraries.EventBus.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\EventBus.Kafka\DigiTFactory.Libraries.EventBus.Kafka.csproj" />
-    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\EventBus.Postgres\DigiTFactory.Libraries.EventBus.Postgres.csproj" />
   </ItemGroup>
 
 </Project>
