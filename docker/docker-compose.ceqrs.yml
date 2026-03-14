@@ -1,0 +1,125 @@
+version: "3.8"
+
+# Профиль: CEQRS
+# Три деплоймента (Command + Event + Query).
+# Command DB: MongoDB (Event Store).
+# Read DB: ScyllaDB (денормализованные проекции).
+# EventBus: Apache Kafka.
+# Максимальный перформанс — полная реализация CEQRS.
+
+services:
+  # --- Деплоймент 1: Command ---
+  chat-command:
+    image: ghcr.io/ekstrem/chat:ceqrs
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Ceqrs
+      - CommandStore__Mongo__ConnectionString=mongodb://mongo:27017
+      - CommandStore__Mongo__DatabaseName=chat_commands
+      - EventBus__Strategy=Kafka
+      - EventBus__Kafka__BootstrapServers=kafka:9092
+      - EventBus__Kafka__TopicPrefix=chat-events
+      - EventBus__Kafka__GroupId=chat-command-group
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # --- Деплоймент 2: Event Consumer ---
+  chat-event:
+    image: ghcr.io/ekstrem/chat:ceqrs
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Ceqrs
+      - CommandStore__Mongo__ConnectionString=mongodb://mongo:27017
+      - CommandStore__Mongo__DatabaseName=chat_commands
+      - ReadStore__Provider=Scylla
+      - ReadStore__Scylla__ContactPoints__0=scylla
+      - ReadStore__Scylla__Keyspace=chat_read
+      - ReadStore__Scylla__AutoCreateSchema=true
+      - EventBus__Strategy=Kafka
+      - EventBus__Kafka__BootstrapServers=kafka:9092
+      - EventBus__Kafka__TopicPrefix=chat-events
+      - EventBus__Kafka__GroupId=chat-event-group
+    depends_on:
+      mongo:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # --- Деплоймент 3: Query ---
+  chat-query:
+    image: ghcr.io/ekstrem/chat:ceqrs
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Ceqrs
+      - ReadStore__Provider=Scylla
+      - ReadStore__Scylla__ContactPoints__0=scylla
+      - ReadStore__Scylla__Keyspace=chat_read
+    depends_on:
+      scylla:
+        condition: service_healthy
+
+  # --- Инфраструктура ---
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  scylla:
+    image: scylladb/scylla:5.4
+    ports:
+      - "9042:9042"
+    volumes:
+      - scylladata:/var/lib/scylla
+    command: --smp 1 --memory 512M
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zkdata:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  mongodata:
+  scylladata:
+  zkdata:
+  kafkadata:

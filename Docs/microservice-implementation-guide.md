@@ -583,6 +583,99 @@ services.AddReadStoreScylla<IMyContext, MyReadModel>(options =>
 
 ---
 
+## 6. Профили деплоймента
+
+Микросервис поддерживает 4 профиля деплоймента — от простейшего (всё в одном процессе) до максимального перформанса (CEQRS с Kafka + ScyllaDB). Каждый профиль управляется через `ASPNETCORE_ENVIRONMENT` и соответствующий `appsettings.{Profile}.json`.
+
+### Обзор профилей
+
+| # | Профиль | Деплойменты | Command DB | Read DB | EventBus | Назначение |
+|---|---------|-------------|------------|---------|----------|------------|
+| 1 | **Single** | 1 | PostgreSQL (EF Core) | та же БД, та же схема | InMemory | Dev / demo |
+| 2 | **BudgetCqrs** | 2 (Cmd+Qry) | PostgreSQL | PostgreSQL (та же БД, схема `ReadModel`) | InMemory | Разделение чтения/записи без доп. инфраструктуры |
+| 3 | **Cqrs** | 2 (Cmd+Qry) | MongoDB | PostgreSQL (отдельная БД) | InMemory | Разные СУБД для команд и запросов |
+| 4 | **Ceqrs** | 3 (Cmd+Evt+Qry) | MongoDB | ScyllaDB | Kafka | Максимальный перформанс |
+
+### Конфигурация в appsettings
+
+Каждый профиль определяется файлом `appsettings.{Profile}.json`. Ключевые секции:
+
+```jsonc
+{
+  "DeploymentProfile": "Single|BudgetCqrs|Cqrs|Ceqrs",
+
+  "CommandStore": {
+    "Provider": "Postgres|Mongo",     // выбор Event Store
+    "Mongo": { "ConnectionString": "...", "DatabaseName": "..." }
+  },
+
+  "ReadStore": {
+    "Provider": "Postgres|Redis|Scylla",  // выбор Read Store
+    "SchemaName": "ReadModel",            // для Postgres
+    "Redis": { "ConnectionString": "...", "KeyPrefix": "...", "DefaultTtlMinutes": 30 },
+    "Scylla": { "ContactPoints": ["..."], "Keyspace": "...", "AutoCreateSchema": true }
+  },
+
+  "EventBus": {
+    "Strategy": "InMemory|Kafka|Postgres"
+  }
+}
+```
+
+### Program.cs — автоматический выбор провайдеров
+
+`Program.cs` содержит три блока `switch`, которые выбирают реализации на основе конфигурации:
+
+1. **CommandStore** (`CommandStore:Provider`): `Postgres` → EF Core + CommandDbContext, `Mongo` → `AddEventStoreMongo`
+2. **EventBus** (`EventBus:Strategy`): `InMemory` / `Kafka` / `Postgres`
+3. **ReadStore** (`ReadStore:Provider`): `Postgres` → `AddReadStorePostgres`, `Redis` → `AddReadStoreRedis`, `Scylla` → `AddReadStoreScylla`
+
+### Docker-образы
+
+CI/CD собирает 4 Docker-образа через matrix build:
+
+```
+ghcr.io/{owner}/chat:single       ← ASPNETCORE_ENVIRONMENT=Single
+ghcr.io/{owner}/chat:budget-cqrs  ← ASPNETCORE_ENVIRONMENT=BudgetCqrs
+ghcr.io/{owner}/chat:cqrs         ← ASPNETCORE_ENVIRONMENT=Cqrs
+ghcr.io/{owner}/chat:ceqrs        ← ASPNETCORE_ENVIRONMENT=Ceqrs
+ghcr.io/{owner}/chat:latest       ← алиас для Single
+```
+
+`Dockerfile` принимает `ARG DEPLOYMENT_PROFILE` и устанавливает `ENV ASPNETCORE_ENVIRONMENT`.
+
+### Docker Compose
+
+В папке `docker/` находятся compose-файлы для каждого профиля:
+
+| Файл | Сервисы |
+|------|---------|
+| `docker-compose.single.yml` | app + postgres |
+| `docker-compose.budget-cqrs.yml` | app + postgres (shared) |
+| `docker-compose.cqrs.yml` | app + mongo + postgres |
+| `docker-compose.ceqrs.yml` | cmd-app + evt-app + qry-app + mongo + kafka + zookeeper + scylla |
+
+Запуск:
+
+```bash
+# Single (dev/demo)
+docker compose -f docker/docker-compose.single.yml up -d
+
+# CEQRS (максимальный перформанс)
+docker compose -f docker/docker-compose.ceqrs.yml up -d
+```
+
+### Выбор профиля — рекомендации
+
+| Сценарий | Профиль |
+|----------|---------|
+| Локальная разработка, демо, MVP | **Single** |
+| Продакшен с умеренной нагрузкой, бюджетная инфраструктура | **BudgetCqrs** |
+| Продакшен, когда Command DB и Read DB имеют разные паттерны доступа | **Cqrs** |
+| Высоконагруженный продакшен, необходимы независимое масштабирование и Event Sourcing | **Ceqrs** |
+
+---
+
 ## Чек-лист создания нового микросервиса
 
 1. **Стратегический дизайн** — заполнить Bounded Context Canvas

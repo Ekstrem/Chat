@@ -1,0 +1,59 @@
+version: "3.8"
+
+# Профиль: CQRS
+# Два деплоймента (Command + Query).
+# Command DB: MongoDB (Event Store).
+# Read DB: PostgreSQL (отдельная БД).
+# EventBus: InMemory.
+
+services:
+  chat-app:
+    image: ghcr.io/ekstrem/chat:cqrs
+    build:
+      context: ..
+      args:
+        DEPLOYMENT_PROFILE: Cqrs
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Cqrs
+      - CommandStore__Mongo__ConnectionString=mongodb://mongo:27017
+      - CommandStore__Mongo__DatabaseName=chat_commands
+      - ConnectionStrings__ChatReadDb=Host=postgres;Port=5432;Database=chat_read;Username=postgres;Password=postgres
+    depends_on:
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chat_read
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodata:
+  pgdata:

@@ -1,0 +1,40 @@
+version: "3.8"
+
+# Профиль: Single
+# Один процесс, PostgreSQL для Command DB и Read Store (одна БД, одна схема).
+# EventBus: InMemory. Подходит для dev/demo.
+
+services:
+  chat-app:
+    image: ghcr.io/ekstrem/chat:single
+    build:
+      context: ..
+      args:
+        DEPLOYMENT_PROFILE: Single
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Single
+      - ConnectionStrings__ChatDb=Host=postgres;Port=5432;Database=chat;Username=postgres;Password=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chat
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
