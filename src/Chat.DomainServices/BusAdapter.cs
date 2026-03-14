@@ -1,10 +1,10 @@
-﻿using Chat.Domain;
+﻿using System;
+using System.Text.Json;
+using Chat.Domain;
 using Chat.Domain.Abstraction;
 using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using Microsoft.Extensions.Logging;
-using System;
-using Newtonsoft.Json;
 
 namespace Chat.DomainServices
 {
@@ -33,7 +33,7 @@ namespace Chat.DomainServices
 
         public void OnNext(AggregateResult<IChat, IChatAnemicModel> value)
         {
-            var message = JsonConvert.SerializeObject(value.Event.ChangedValueObjects);
+            var message = JsonSerializer.Serialize(value.Event.ChangedValueObjects);
             _logger.LogInformation($"DE! Command version:{value.Event.Command.Version}; vos: {message}");
 
             _eventBus.Publish(value.Event);

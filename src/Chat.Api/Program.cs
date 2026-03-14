@@ -14,6 +14,8 @@ using DigiTFactory.Libraries.EventBus.Postgres.Extensions;
 using DigiTFactory.Libraries.ReadRepository.Postgres.Extensions;
 using DigiTFactory.Libraries.ReadRepository.Redis.Extensions;
 using DigiTFactory.Libraries.ReadRepository.Scylla.Extensions;
+using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns.Repository;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -140,6 +142,12 @@ switch (readStoreProvider)
         break;
 }
 
+// ======================================================
+// Projection Handler + Rebuild Service
+// ======================================================
+builder.Services.AddScoped<ChatProjectionHandler>();
+builder.Services.AddScoped<IRebuildService<IChat>, ChatRebuildService>();
+
 // MassTransit + RabbitMQ
 var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
 builder.Services.AddMassTransit(x =>
@@ -174,6 +182,14 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Подписать ProjectionHandler на EventBus
+using (var scope = app.Services.CreateScope())
+{
+    var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+    var projectionHandler = scope.ServiceProvider.GetRequiredService<ChatProjectionHandler>();
+    eventBus.Subscribe<IChat>(projectionHandler);
+}
 
 if (app.Environment.IsDevelopment())
 {

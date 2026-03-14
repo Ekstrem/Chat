@@ -571,7 +571,7 @@ services.AddReadStoreScylla<IMyContext, MyReadModel>(options =>
 
 | Пакет | Версия |
 |-------|--------|
-| `DigiTFactory.Libraries.SeedWorks` | 0.4.0 |
+| `DigiTFactory.Libraries.SeedWorks` | 0.5.0 |
 | `DigiTFactory.Libraries.CommandRepository.Postgres` | 0.1.0 |
 | `DigiTFactory.Libraries.CommandRepository.Mongo` | 0.1.0 |
 | `DigiTFactory.Libraries.EventBus.InMemory` | 0.1.0 |

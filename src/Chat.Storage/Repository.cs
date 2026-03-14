@@ -11,8 +11,8 @@ using Chat.InternalContracts;
 using Chat.Storage.Specifications;
 using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Chat.Storage
 {
@@ -67,7 +67,7 @@ namespace Chat.Storage
                 CorrelationToken = domainEvent.Command.CorrelationToken,
                 CommandName = domainEvent.Command.CommandName,
                 SubjectName = domainEvent.Command.SubjectName,
-                ChangedValueObjectsJson = JsonConvert.SerializeObject(domainEvent.ChangedValueObjects),
+                ChangedValueObjectsJson = JsonSerializer.Serialize(domainEvent.ChangedValueObjects),
                 BoundedContext = domainEvent.ContextName,
                 Result = (int)domainEvent.Result,
                 Reason = domainEvent.Reason != null ? string.Join("; ", domainEvent.Reason) : string.Empty,
