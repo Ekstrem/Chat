@@ -1,4 +1,4 @@
-﻿using Hive.SeedWorks.Definition;
+﻿using DigiTFactory.Libraries.SeedWorks.Definition;
 
 namespace Chat.Domain
 {

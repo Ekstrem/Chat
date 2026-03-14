@@ -1,5 +1,5 @@
 ﻿using System;
-using Hive.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
 namespace Chat.Domain.Abstraction
 {

@@ -1,13 +1,13 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Characteristics;
-using Hive.SeedWorks.Events;
-using Hive.SeedWorks.Monads;
-using Hive.SeedWorks.Result;
-using Hive.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using System;
 using System.Collections.Generic;
-using Hive.SeedWorks.Reactive;
+using DigiTFactory.Libraries.SeedWorks.Reactive;
 
 namespace Chat.DomainServices
 {
@@ -32,6 +32,8 @@ namespace Chat.DomainServices
         public string SubjectName => Aggregate.SubjectName;
 
         public Guid CorrelationToken => Aggregate.CorrelationToken;
+
+        public IDictionary<string, IValueObject> Invariants => Aggregate.Invariants;
 
         public IDictionary<string, IValueObject> GetValueObjects()
             => Aggregate.GetValueObjects();

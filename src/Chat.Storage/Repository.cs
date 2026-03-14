@@ -1,80 +1,82 @@
-﻿//using System;
-//using System.Linq;
-//using System.Collections.Generic;
-//using System.Diagnostics;
-//using System.Threading;
-//using System.Threading.Tasks;
-//using Ardalis.Specification;
-//using Autofac.Features.Indexed;
-//using Chat.Domain.Abstraction;
-//using Chat.Domain.Implementation;
-//using Chat.DomainServices;
-//using Chat.InternalContracts;
-//using Chat.Storage.Specifications;
-//using Hive.SeedWorks.Monads;
-//using Microsoft.EntityFrameworkCore;
-//using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Chat.Domain.Abstraction;
+using Chat.DomainServices;
+using Chat.Storage.Projections;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-//namespace Chat.Storage
-//{
-//    internal class Repository: IRepository
-//    {
-//        private readonly ILogger<Repository> _logger;
-//        private readonly IQueryRepository<DomainEventEventEntry> _eventRepository;
+namespace Chat.Storage
+{
+    internal sealed class Repository : IRepository
+    {
+        private readonly ILogger<Repository> _logger;
+        private readonly CommandDbContext _dbContext;
+        private readonly ChatProjectionService _projectionService;
 
-//        public Repository(
-//            ILogger<Repository> logger,
-//            IQueryRepository<DomainEventEventEntry> eventRepository,
-//            IIndex<string, DbContext> dbContexts)
-//        {
-//            _logger = logger;
-//            _eventRepository = eventRepository;
-//        }
+        public Repository(
+            ILogger<Repository> logger,
+            CommandDbContext dbContext,
+            ChatProjectionService projectionService)
+        {
+            _logger = logger;
+            _dbContext = dbContext;
+            _projectionService = projectionService;
+        }
 
-//        public Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
-//            => new GetByIdSpec(id)
-//                .PipeTo(query => AggregateStreams(query, cancellationToken));
-                
+        public async Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("Getting events for aggregate {AggregateId}", id);
 
-//        public Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
-//        {
-//            var aggregates = new GetByIdAndVersionSpec(id, version)
-//                .PipeTo(query => AggregateStreams(query, cancellationToken));
+            var events = await _dbContext.Events
+                .Where(e => e.Id == id)
+                .OrderBy(e => e.Version)
+                .ToListAsync(cancellationToken);
 
-//            return aggregates.SingleOrDefault() ?? DefaultAnemicModel.Create(id);
-//        }
+            _logger.LogDebug("Found {EventCount} events for aggregate {AggregateId}", events.Count, id);
 
-//        public Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
-//            => new GetByIdAndVersionSpec(correlationToken)
-//                .PipeTo(query => AggregateStreams(query, cancellationToken));
+            // TODO: Реконструкция анемичных моделей из потока событий
+            return new List<IChatAnemicModel>();
+        }
 
-//        private async Task<List<IChatAnemicModel>> AggregateStreams(Guid? defaultStreamId,
-//            ISpecification<DomainEventEventEntry> spec, CancellationToken cancellationToken)
-//        {
-//            throw new NotImplementedException()
-//            /*
-//            try
-//            {
-//                if (spec == null)
-//                {
-//                    throw new ArgumentException("Filter spex is empty");
-//                }
+        public async Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("Getting event for aggregate {AggregateId} version {Version}", id, version);
 
-//                var sw = new Stopwatch()
-//                    .Do(s => s.Start());
+            var entry = await _dbContext.Events
+                .FirstOrDefaultAsync(e => e.Id == id && e.Version == version, cancellationToken);
 
-//                var anemicModel = await GetDefaultAnemicModel(defaultStreamId ?? Guid.NewGuid());
+            // TODO: Десериализация события в анемичную модель
+            return default!;
+        }
 
-//                var streamEvents = await _eventRepository
-//                    .FindByAsync(spec, cancellationToken);
+        public async Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("Getting event by correlation token {CorrelationToken}", correlationToken);
 
-//            }
-//            catch (Exception e)
-//            {
-//                Console.WriteLine(e);
-//                throw;
-//            }
-//            */
-//        }
-//    }
-//}
+            var entry = await _dbContext.Events
+                .FirstOrDefaultAsync(e => e.CorrelationToken == correlationToken, cancellationToken);
+
+            // TODO: Десериализация события в анемичную модель
+            return default!;
+        }
+
+        public async Task SaveEventAsync(DomainEventEventEntry entry, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation(
+                "Saving domain event for aggregate {AggregateId}, version {Version}, command {CommandName}",
+                entry.Id, entry.Version, entry.CommandName);
+
+            _dbContext.Events.Add(entry);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Обновление read model
+            await _projectionService.ProjectAsync(entry, cancellationToken);
+
+            _logger.LogDebug("Domain event saved successfully for aggregate {AggregateId}", entry.Id);
+        }
+    }
+}

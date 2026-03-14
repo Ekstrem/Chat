@@ -1,11 +1,11 @@
 ﻿using Chat.Domain.Abstraction;
 using System;
 using System.Collections.Generic;
-using Hive.SeedWorks.TacticalPatterns;
-using Hive.SeedWorks.Result;
-using Hive.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using Chat.Domain.Specifications;
-using Hive.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Monads;
 using System.Linq;
 
 namespace Chat.Domain.Implementation
@@ -30,6 +30,8 @@ namespace Chat.Domain.Implementation
         public string SubjectName => _anemicModel.SubjectName;
 
         public Guid CorrelationToken => _anemicModel.CorrelationToken;
+
+        public IDictionary<string, IValueObject> Invariants => _anemicModel.Invariants;
 
         public IDictionary<string, IValueObject> GetValueObjects()
             => _anemicModel.GetValueObjects();

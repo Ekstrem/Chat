@@ -3,10 +3,10 @@ using Chat.Domain.Abstraction;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hive.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Monads;
 using System.Collections.Immutable;
-using Hive.SeedWorks.Events;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.Result;
 
 namespace Chat.DomainServices
 {

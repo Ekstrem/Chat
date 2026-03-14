@@ -1,7 +1,7 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Events;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.Result;
 using Microsoft.Extensions.Logging;
 using System;
 using Newtonsoft.Json;
@@ -16,7 +16,9 @@ namespace Chat.DomainServices
         public BusAdapter(
             IEventBus eventBus,
             ILogger<BusAdapter> logger)
-        { 
+        {
+            _eventBus = eventBus;
+            _logger = logger;
         }
 
         public void OnCompleted()

@@ -3,7 +3,7 @@
 //using Chat.InternalContracts;
 //using Newtonsoft.Json.Linq;
 //using System.Linq;
-//using Hive.SeedWorks.Monads;
+//using DigiTFactory.Libraries.SeedWorks.Monads;
 
 //namespace Chat.DomainServices
 //{

@@ -1,0 +1,12 @@
+using System;
+using MediatR;
+
+namespace Chat.Application.Commands
+{
+    public class OperatorRepliedToMessageCommand : IRequest<ChatOperationResult>
+    {
+        public Guid AggregateId { get; set; }
+        public Guid CorrelationToken { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+}

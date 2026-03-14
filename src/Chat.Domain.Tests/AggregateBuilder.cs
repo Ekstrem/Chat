@@ -48,5 +48,62 @@ namespace Chat.Domain.Tests
                     ChatFeedback.CreateByText("нуштош сойдет"),
                     default);
         }
+
+        public static IChatAnemicModel CreateBotReplyModel(Guid id)
+        {
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.BotRepliedToUser)
+                        .CreateCommandMetadata(),
+                    default,
+                    default,
+                    default,
+                    new[]
+                    {
+                        ChatMessage
+                            .CreateInstance(
+                                MessageType.Text,
+                                "Автоматический ответ бота",
+                                Platform.Windows,
+                                Application.Site,
+                                default)
+                    });
+        }
+
+        public static IChatAnemicModel CreateOperatorReplyModel(Guid id)
+        {
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.OperatorRepliedToMessage)
+                        .CreateCommandMetadata(),
+                    default,
+                    default,
+                    default,
+                    new[]
+                    {
+                        ChatMessage
+                            .CreateInstance(
+                                MessageType.Text,
+                                "Ответ оператора",
+                                Platform.Windows,
+                                Application.Site,
+                                default)
+                    });
+        }
+
+        public static IChatAnemicModel CreateFeedbackByScoresModel(Guid id)
+        {
+            return AnemicModel
+                .Create(
+                    id,
+                    nameof(Aggregate.SubscriberGaveFeedback)
+                        .CreateCommandMetadata(),
+                    default,
+                    default,
+                    ChatFeedback.CreateByScores(5),
+                    default);
+        }
     }
 }

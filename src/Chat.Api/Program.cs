@@ -1,26 +1,81 @@
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Chat.Application;
+using Chat.Application.Behaviors;
+using Chat.DomainServices;
+using Chat.DomainServices.Consumers;
+using Chat.Storage;
+using MassTransit;
+using MediatR;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Chat.Api
+var builder = WebApplication.CreateBuilder(args);
+
+// Services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddChatStorage(builder.Configuration.GetConnectionString("CommandDb")!);
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatOperationResult).Assembly));
+
+// Register pipeline behaviors
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
+
+// MassTransit + RabbitMQ
+builder.Services.AddMassTransit(x =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    x.AddConsumer<DomainEventConsumer>();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var rabbitConfig = builder.Configuration.GetSection("RabbitMQ");
+        cfg.Host(rabbitConfig["Host"] ?? "localhost", h =>
+        {
+            h.Username(rabbitConfig["Username"] ?? "guest");
+            h.Password(rabbitConfig["Password"] ?? "guest");
+        });
+
+        cfg.ReceiveEndpoint("chat-events", e =>
+        {
+            e.ConfigureConsumer<DomainEventConsumer>(context);
+        });
+    });
+});
+
+// Autofac for DomainServices
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+    containerBuilder.RegisterModule<RegisterDependencies>());
+
+// CORS
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+
+// Health checks
+builder.Services.AddHealthChecks();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+    // Auto-create DB in dev
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CommandDbContext>();
+    db.Database.EnsureCreated();
 }
+
+app.UseCors();
+app.MapControllers();
+app.MapHealthChecks("/health");
+
+app.Run();

@@ -1,5 +1,5 @@
 ﻿using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Invariants;
+using DigiTFactory.Libraries.SeedWorks.Invariants;
 
 namespace Chat.Domain.Implementation
 {

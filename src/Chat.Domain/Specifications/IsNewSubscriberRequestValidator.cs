@@ -1,7 +1,7 @@
 ﻿using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
-using Hive.SeedWorks.Invariants;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Invariants;
+using DigiTFactory.Libraries.SeedWorks.Result;
 
 namespace Chat.Domain.Specifications
 {
