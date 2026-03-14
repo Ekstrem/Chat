@@ -1,12 +1,15 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Chat.Application.Commands;
+using Chat.Domain;
 using Chat.DomainServices;
 using Chat.InternalContracts;
 using Chat.Storage;
+using Chat.Storage.ReadModel;
 using DigiTFactory.Libraries.EventBus.InMemory.Extensions;
 using DigiTFactory.Libraries.EventBus.Kafka.Extensions;
 using DigiTFactory.Libraries.EventBus.Postgres.Extensions;
+using DigiTFactory.Libraries.ReadRepository.Postgres.Extensions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -67,6 +70,16 @@ switch (eventBusStrategy)
         builder.Services.AddEventBusInMemory();
         break;
 }
+
+// ======================================================
+// Read Store (проекции) — PostgreSQL
+// ======================================================
+var readDbConnectionString = builder.Configuration.GetConnectionString("ChatReadDb")
+    ?? connectionString!;
+
+builder.Services.AddReadStorePostgres<IChat, ChatReadModel, ReadDbContext>(
+    readDbConnectionString,
+    options => options.SchemaName = "ReadModel");
 
 // MassTransit + RabbitMQ
 var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
