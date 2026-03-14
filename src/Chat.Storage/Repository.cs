@@ -1,79 +1,56 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Chat.Domain;
 using Chat.Domain.Abstraction;
 using Chat.DomainServices;
 using Chat.Storage.Projections;
-using Microsoft.EntityFrameworkCore;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Entities;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace Chat.Storage
 {
+    /// <summary>
+    /// Chat-специфичный репозиторий.
+    /// Делегирует хранение событий в библиотеку CommandRepository.Postgres,
+    /// добавляет обновление Chat read model через ChatProjectionService.
+    /// </summary>
     internal sealed class Repository : IRepository
     {
         private readonly ILogger<Repository> _logger;
-        private readonly CommandDbContext _dbContext;
+        private readonly IEventStoreRepository<IChat, IChatAnemicModel> _eventStore;
         private readonly ChatProjectionService _projectionService;
 
         public Repository(
             ILogger<Repository> logger,
-            CommandDbContext dbContext,
+            IEventStoreRepository<IChat, IChatAnemicModel> eventStore,
             ChatProjectionService projectionService)
         {
             _logger = logger;
-            _dbContext = dbContext;
+            _eventStore = eventStore;
             _projectionService = projectionService;
         }
 
-        public async Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("Getting events for aggregate {AggregateId}", id);
+        public Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
+            => _eventStore.GetById(id, cancellationToken);
 
-            var events = await _dbContext.Events
-                .Where(e => e.Id == id)
-                .OrderBy(e => e.Version)
-                .ToListAsync(cancellationToken);
+        public Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
+            => _eventStore.GetByIdAndVersion(id, version, cancellationToken);
 
-            _logger.LogDebug("Found {EventCount} events for aggregate {AggregateId}", events.Count, id);
+        public Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
+            => _eventStore.GetByCorrelationToken(correlationToken, cancellationToken);
 
-            // TODO: Реконструкция анемичных моделей из потока событий
-            return new List<IChatAnemicModel>();
-        }
-
-        public async Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("Getting event for aggregate {AggregateId} version {Version}", id, version);
-
-            var entry = await _dbContext.Events
-                .FirstOrDefaultAsync(e => e.Id == id && e.Version == version, cancellationToken);
-
-            // TODO: Десериализация события в анемичную модель
-            return default!;
-        }
-
-        public async Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("Getting event by correlation token {CorrelationToken}", correlationToken);
-
-            var entry = await _dbContext.Events
-                .FirstOrDefaultAsync(e => e.CorrelationToken == correlationToken, cancellationToken);
-
-            // TODO: Десериализация события в анемичную модель
-            return default!;
-        }
-
-        public async Task SaveEventAsync(DomainEventEventEntry entry, CancellationToken cancellationToken = default)
+        public async Task SaveEventAsync(DomainEventEntry entry, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation(
                 "Saving domain event for aggregate {AggregateId}, version {Version}, command {CommandName}",
                 entry.Id, entry.Version, entry.CommandName);
 
-            _dbContext.Events.Add(entry);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _eventStore.SaveEventAsync(entry, cancellationToken);
 
-            // Обновление read model
+            // Chat-специфичное обновление read model
             await _projectionService.ProjectAsync(entry, cancellationToken);
 
             _logger.LogDebug("Domain event saved successfully for aggregate {AggregateId}", entry.Id);

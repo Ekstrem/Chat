@@ -1,3 +1,4 @@
+using System;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Chat.Application;
@@ -5,12 +6,14 @@ using Chat.Application.Behaviors;
 using Chat.DomainServices;
 using Chat.DomainServices.Consumers;
 using Chat.Storage;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Configuration;
 using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using DigiTFactory.Libraries.CommandRepository.Postgres;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -20,7 +23,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddChatStorage(builder.Configuration.GetConnectionString("CommandDb")!);
+builder.Services.AddChatStorage(builder.Configuration.GetConnectionString("CommandDb")!, options =>
+{
+    var section = builder.Configuration.GetSection("EventStore");
+    if (Enum.TryParse<EventStoreStrategy>(section["Strategy"], out var strategy))
+        options.Strategy = strategy;
+    if (int.TryParse(section["SnapshotInterval"], out var interval))
+        options.SnapshotInterval = interval;
+    options.SchemaName = section["SchemaName"] ?? "Commands";
+});
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatOperationResult).Assembly));
 
 // Register pipeline behaviors
@@ -70,8 +81,10 @@ if (app.Environment.IsDevelopment())
 
     // Auto-create DB in dev
     using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<CommandDbContext>();
-    db.Database.EnsureCreated();
+    var eventStoreDb = scope.ServiceProvider.GetRequiredService<EventStoreDbContext>();
+    eventStoreDb.Database.EnsureCreated();
+    var readModelDb = scope.ServiceProvider.GetRequiredService<CommandDbContext>();
+    readModelDb.Database.EnsureCreated();
 }
 
 app.UseCors();

@@ -1,7 +1,9 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Chat.Domain;
+using Chat.Domain.Abstraction;
 using Chat.Storage;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,10 +12,14 @@ namespace Chat.Application.Queries
     public class GetChatByIdHandler : IRequestHandler<GetChatByIdQuery, ChatOperationResult>
     {
         private readonly CommandDbContext _dbContext;
+        private readonly IEventStoreRepository<IChat, IChatAnemicModel> _eventStore;
 
-        public GetChatByIdHandler(CommandDbContext dbContext)
+        public GetChatByIdHandler(
+            CommandDbContext dbContext,
+            IEventStoreRepository<IChat, IChatAnemicModel> eventStore)
         {
             _dbContext = dbContext;
+            _eventStore = eventStore;
         }
 
         public async Task<ChatOperationResult> Handle(GetChatByIdQuery request, CancellationToken cancellationToken)
@@ -30,21 +36,19 @@ namespace Chat.Application.Queries
                     $"Status: {readModel.Status}, Messages: {readModel.MessageCount}, Operator: {readModel.OperatorName}");
             }
 
-            // Fallback на event store
-            var latestEvent = await _dbContext.Events
-                .Where(e => e.Id == request.AggregateId)
-                .OrderByDescending(e => e.Version)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Fallback на event store через библиотеку
+            var events = await _eventStore.GetById(request.AggregateId, cancellationToken);
 
-            if (latestEvent == null)
+            if (events == null || events.Count == 0)
             {
                 return ChatOperationResult.Failure("Chat not found.");
             }
 
+            var latest = events[events.Count - 1];
             return ChatOperationResult.Success(
-                latestEvent.Id,
-                latestEvent.Version,
-                latestEvent.Result);
+                request.AggregateId,
+                latest.Version,
+                "Restored from event store");
         }
     }
 }

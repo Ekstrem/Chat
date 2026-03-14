@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Chat.DomainServices\Chat.DomainServices.csproj" />
     <ProjectReference Include="..\Chat.InternalContracts\Chat.InternalContracts.csproj" />
+    <ProjectReference Include="..\..\..\DigiTFactory.Libraries\CommandRepository.Postgres\DigiTFactory.Libraries.CommandRepository.Postgres.csproj" />
   </ItemGroup>
 
 </Project>

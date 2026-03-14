@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Chat.Storage.ReadModels;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +21,7 @@ namespace Chat.Storage.Projections
             _logger = logger;
         }
 
-        public async Task ProjectAsync(DomainEventEventEntry entry, CancellationToken cancellationToken = default)
+        public async Task ProjectAsync(DomainEventEntry entry, CancellationToken cancellationToken = default)
         {
             var readModel = await _dbContext.ChatReadModels
                 .FirstOrDefaultAsync(r => r.Id == entry.Id, cancellationToken);
