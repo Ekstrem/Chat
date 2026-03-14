@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Chat.DomainServices\Chat.DomainServices.csproj" />
+<<<<<<< HEAD
+    <ProjectReference Include="..\Chat.Storage\Chat.Storage.csproj" />
+=======
+    <ProjectReference Include="..\Chat.InternalContracts\Chat.InternalContracts.csproj" />
+>>>>>>> origin/claude/update
+  </ItemGroup>
+
+</Project>

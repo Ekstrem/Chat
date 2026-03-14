@@ -1,0 +1,166 @@
+<<<<<<< HEAD
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+=======
+>>>>>>> origin/claude/update
+using Chat.Application;
+using Chat.Application.Commands;
+using Chat.Application.Queries;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+<<<<<<< HEAD
+=======
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+>>>>>>> origin/claude/update
+
+namespace Chat.Api.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ChatController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public ChatController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        /// <summary>
+<<<<<<< HEAD
+        /// Subscriber requests a new question in chat.
+        /// </summary>
+        [HttpPost]
+        [ProducesResponseType(typeof(ChatOperationResult), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> SubscriberRequestQuestion(
+=======
+        /// Абонент задал вопрос в чате.
+        /// </summary>
+        [HttpPost]
+        public async Task<ActionResult<ChatOperationResult>> SubscriberRequestQuestion(
+>>>>>>> origin/claude/update
+            [FromBody] SubscriberRequestQuestionCommand command,
+            CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(command, cancellationToken);
+<<<<<<< HEAD
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Operator dequeues a chat request.
+        /// </summary>
+        [HttpPost("{id:guid}/dequeue")]
+        [ProducesResponseType(typeof(ChatOperationResult), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> OperatorDequeueRequest(
+            [FromRoute] Guid id,
+=======
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Оператор взял обращение на обработку.
+        /// </summary>
+        [HttpPost("{id:guid}/dequeue")]
+        public async Task<ActionResult<ChatOperationResult>> OperatorDequeueRequest(
+            Guid id,
+>>>>>>> origin/claude/update
+            [FromBody] OperatorDequeueRequestCommand command,
+            CancellationToken cancellationToken)
+        {
+            command.AggregateId = id;
+            var result = await _mediator.Send(command, cancellationToken);
+<<<<<<< HEAD
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Operator replies to a message.
+        /// </summary>
+        [HttpPost("{id:guid}/reply")]
+        [ProducesResponseType(typeof(ChatOperationResult), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> OperatorRepliedToMessage(
+            [FromRoute] Guid id,
+=======
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Оператор ответил на обращение.
+        /// </summary>
+        [HttpPost("{id:guid}/reply")]
+        public async Task<ActionResult<ChatOperationResult>> OperatorRepliedToMessage(
+            Guid id,
+>>>>>>> origin/claude/update
+            [FromBody] OperatorRepliedToMessageCommand command,
+            CancellationToken cancellationToken)
+        {
+            command.AggregateId = id;
+            var result = await _mediator.Send(command, cancellationToken);
+<<<<<<< HEAD
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get chat by identifier.
+        /// </summary>
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ChatOperationResult), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetChatById(
+            [FromRoute] Guid id,
+            CancellationToken cancellationToken)
+        {
+            var query = new GetChatByIdQuery { AggregateId = id };
+            var result = await _mediator.Send(query, cancellationToken);
+
+            if (!result.IsSuccess)
+                return NotFound(result);
+
+=======
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Сессия завершилась по триггеру.
+        /// </summary>
+        [HttpPost("{id:guid}/end")]
+        public async Task<ActionResult<ChatOperationResult>> SessionEndingByTrigger(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var command = new SessionEndingByTriggerCommand { AggregateId = id };
+            var result = await _mediator.Send(command, cancellationToken);
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Получить чат по идентификатору.
+        /// </summary>
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetChatById(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetChatByIdQuery { AggregateId = id }, cancellationToken);
+>>>>>>> origin/claude/update
+            return Ok(result);
+        }
+    }
+}
