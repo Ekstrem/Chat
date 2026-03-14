@@ -1,10 +1,10 @@
 using Chat.Domain;
 using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
-using Hive.SeedWorks.Characteristics;
-using Hive.SeedWorks.Monads;
-using Hive.SeedWorks.Result;
-using Hive.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using System;
 using System.Collections.Generic;
 using System.Linq;

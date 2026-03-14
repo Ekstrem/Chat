@@ -1,6 +1,6 @@
-﻿using Hive.SeedWorks.Characteristics;
+﻿using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using System;
-using Hive.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.Events;
 
 namespace Chat.Domain.Tests
 {

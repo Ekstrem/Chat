@@ -1,7 +1,7 @@
 using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
 using Chat.DomainServices;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Result;
 using MediatR;
 using System;
 using System.Linq;

@@ -1,8 +1,8 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
-using Hive.SeedWorks.Result;
-using Hive.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Monads;
 using System;
 using System.Linq;
 using System.Threading;

@@ -9,8 +9,8 @@ using Chat.Domain.Implementation;
 using Chat.DomainServices;
 using Chat.InternalContracts;
 using Chat.Storage.Specifications;
-using Hive.SeedWorks.Events;
-using Hive.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 

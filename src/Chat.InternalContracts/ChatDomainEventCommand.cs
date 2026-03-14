@@ -1,5 +1,5 @@
-using Hive.SeedWorks.Characteristics;
-using Hive.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using System;
 using System.Collections.Generic;
 

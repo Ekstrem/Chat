@@ -1,6 +1,6 @@
-﻿using Hive.SeedWorks.Characteristics;
-using Hive.SeedWorks.Result;
-using Hive.SeedWorks.TacticalPatterns;
+﻿using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
 namespace Chat.Domain.Abstraction
 {

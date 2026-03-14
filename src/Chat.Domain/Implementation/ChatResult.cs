@@ -1,6 +1,6 @@
 ﻿using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Invariants;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Invariants;
+using DigiTFactory.Libraries.SeedWorks.Result;
 using System.Collections.Generic;
 
 namespace Chat.Domain.Implementation

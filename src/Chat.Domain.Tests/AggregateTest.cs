@@ -2,8 +2,8 @@
 using System.Linq;
 using Chat.Domain.Abstraction;
 using Chat.Domain.Implementation;
-using Hive.SeedWorks.Monads;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Monads;
+using DigiTFactory.Libraries.SeedWorks.Result;
 using Xunit;
 
 namespace Chat.Domain.Tests

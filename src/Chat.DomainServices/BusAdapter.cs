@@ -1,7 +1,7 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Events;
-using Hive.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.Result;
 using Microsoft.Extensions.Logging;
 using System;
 using Newtonsoft.Json;

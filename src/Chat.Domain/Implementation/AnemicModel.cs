@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Chat.Domain.Abstraction;
-using Hive.SeedWorks.Characteristics;
-using Hive.SeedWorks.LifeCircle;
-using Hive.SeedWorks.TacticalPatterns;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.LifeCircle;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
 namespace Chat.Domain.Implementation
 {
@@ -59,6 +59,8 @@ namespace Chat.Domain.Implementation
         public string CommandName => _commandName;
 
         public string SubjectName => _subjectName;
+
+        public IDictionary<string, IValueObject> Invariants => GetValueObjects();
 
         public IDictionary<string, IValueObject> GetValueObjects()
             => ValueObjectHelper.GetValueObjects(this);

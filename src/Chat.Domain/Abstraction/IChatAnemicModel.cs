@@ -1,4 +1,4 @@
-﻿using Hive.SeedWorks.TacticalPatterns;
+﻿using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using System.Collections.Generic;
 
 namespace Chat.Domain.Abstraction
