@@ -19,6 +19,8 @@
     <ProjectReference Include="..\Chat.Application\Chat.Application.csproj" />
     <ProjectReference Include="..\Chat.DomainServices\Chat.DomainServices.csproj" />
     <ProjectReference Include="..\Chat.Storage\Chat.Storage.csproj" />
+    <ProjectReference Include="..\Chat.Storage.Postgres\Chat.Storage.Postgres.csproj" />
+    <ProjectReference Include="..\Chat.Storage.Mongo\Chat.Storage.Mongo.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,31 +1,29 @@
-using System;
-using Chat.Domain;
-using Chat.Domain.Abstraction;
 using Chat.DomainServices;
 using Chat.Storage.Projections;
-using DigiTFactory.Libraries.CommandRepository.Postgres.Configuration;
-using DigiTFactory.Libraries.CommandRepository.Postgres.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Chat.Storage
 {
+    /// <summary>
+    /// Регистрация общих Chat-компонентов (CommandDbContext, Projections, IRepository).
+    /// Вызывается из Chat.Storage.Postgres или Chat.Storage.Mongo.
+    /// </summary>
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddChatStorage(
+        /// <summary>
+        /// Регистрирует CommandDbContext, ChatProjectionService и IRepository.
+        /// Предполагается, что IAnemicModelRepository уже зарегистрирован
+        /// конкретной СУБД-библиотекой (Postgres или Mongo).
+        /// </summary>
+        public static IServiceCollection AddChatCommandDb(
             this IServiceCollection services,
-            string connectionString,
-            Action<EventStoreOptions>? configureOptions = null)
+            string connectionString)
         {
-            // Event Store из библиотеки (стратегия задаётся через configureOptions)
-            services.AddEventStorePostgres<IChat, IChatAnemicModel>(connectionString, configureOptions);
-
-            // Chat-специфичный DbContext для Read Models
             services.AddDbContext<CommandDbContext>(options =>
                 options.UseNpgsql(connectionString, b =>
                     b.MigrationsAssembly("Chat.Storage")));
 
-            // Chat-специфичные сервисы
             services.AddScoped<ChatProjectionService>();
             services.AddScoped<IRepository, Repository>();
 

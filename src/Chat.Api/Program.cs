@@ -6,14 +6,18 @@ using Chat.Application.Behaviors;
 using Chat.DomainServices;
 using Chat.DomainServices.Consumers;
 using Chat.Storage;
+using Chat.Storage.Postgres;
+using DigiTFactory.Libraries.CommandRepository.Postgres;
 using DigiTFactory.Libraries.CommandRepository.Postgres.Configuration;
+// using Chat.Storage.Mongo;
+// using DigiTFactory.Libraries.CommandRepository.Mongo.Configuration;
+// using MongoStrategy = DigiTFactory.Libraries.CommandRepository.Mongo.Configuration.EventStoreStrategy;
 using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using DigiTFactory.Libraries.CommandRepository.Postgres;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -23,15 +27,39 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddChatStorage(builder.Configuration.GetConnectionString("CommandDb")!, options =>
-{
-    var section = builder.Configuration.GetSection("EventStore");
-    if (Enum.TryParse<EventStoreStrategy>(section["Strategy"], out var strategy))
-        options.Strategy = strategy;
-    if (int.TryParse(section["SnapshotInterval"], out var interval))
-        options.SnapshotInterval = interval;
-    options.SchemaName = section["SchemaName"] ?? "Commands";
-});
+
+// ======================================================
+// Выбор СУБД для Event Store.
+// Раскомментируйте ОДНУ из секций ниже.
+// ======================================================
+
+// --- PostgreSQL ---
+builder.Services.AddChatPostgresStorage(
+    builder.Configuration.GetConnectionString("CommandDb")!,
+    options =>
+    {
+        var section = builder.Configuration.GetSection("EventStore");
+        if (Enum.TryParse<EventStoreStrategy>(section["Strategy"], out var strategy))
+            options.Strategy = strategy;
+        if (int.TryParse(section["SnapshotInterval"], out var interval))
+            options.SnapshotInterval = interval;
+        options.SchemaName = section["SchemaName"] ?? "Commands";
+    });
+
+// --- MongoDB ---
+// builder.Services.AddChatMongoStorage(
+//     builder.Configuration.GetConnectionString("CommandDb")!,
+//     options =>
+//     {
+//         var mongoSection = builder.Configuration.GetSection("MongoEventStore");
+//         options.ConnectionString = mongoSection["ConnectionString"] ?? "mongodb://localhost:27017";
+//         options.DatabaseName = mongoSection["DatabaseName"] ?? "ChatEventStore";
+//         if (Enum.TryParse<MongoStrategy>(mongoSection["Strategy"], out var strategy))
+//             options.Strategy = strategy;
+//         if (int.TryParse(mongoSection["SnapshotInterval"], out var interval))
+//             options.SnapshotInterval = interval;
+//     });
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatOperationResult).Assembly));
 
 // Register pipeline behaviors
