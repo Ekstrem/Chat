@@ -589,12 +589,78 @@ services.AddReadStoreScylla<IMyContext, MyReadModel>(options =>
 
 ### Обзор профилей
 
-| # | Профиль | Деплойменты | Command DB | Read DB | EventBus | Назначение |
-|---|---------|-------------|------------|---------|----------|------------|
-| 1 | **Single** | 1 | PostgreSQL (EF Core) | та же БД, та же схема | InMemory | Dev / demo |
-| 2 | **BudgetCqrs** | 2 (Cmd+Qry) | PostgreSQL | PostgreSQL (та же БД, схема `ReadModel`) | InMemory | Разделение чтения/записи без доп. инфраструктуры |
-| 3 | **Cqrs** | 2 (Cmd+Qry) | MongoDB | PostgreSQL (отдельная БД) | InMemory | Разные СУБД для команд и запросов |
-| 4 | **Ceqrs** | 3 (Cmd+Evt+Qry) | MongoDB | ScyllaDB | Kafka | Максимальный перформанс |
+| # | Профиль | Деплойменты | DeploymentRole | Command DB | Read DB | EventBus | Назначение |
+|---|---------|-------------|----------------|------------|---------|----------|------------|
+| 1 | **Single** | 1 | All | PostgreSQL (EF Core) | та же БД, схема `public` | InMemory | Dev / demo |
+| 2 | **BudgetCqrs** | 1 | All | PostgreSQL | PostgreSQL (та же БД, схема `ReadModel`) | InMemory | CQRS без доп. инфраструктуры |
+| 3 | **Cqrs** | 2 (Cmd+Qry) | Command, Query | MongoDB | PostgreSQL (отдельная БД) | Postgres (Outbox) | Разные СУБД + межпроцессный EventBus |
+| 4 | **Ceqrs** | 3 (C+E+Q) | Command, Event, Query | MongoDB | ScyllaDB | Kafka | Максимальный перформанс |
+
+### DeploymentRole — роль процесса
+
+Параметр `DeploymentRole` определяет, какие компоненты регистрируются в DI-контейнере конкретного процесса. Передаётся через переменную окружения или конфигурацию.
+
+| Роль | CommandStore | EventBus | ReadStore | ProjectionHandler | Контроллеры |
+|------|-------------|----------|-----------|-------------------|-------------|
+| **All** | ✅ | ✅ (pub + sub) | ✅ | ✅ | Command + Query + Admin |
+| **Command** | ✅ | ✅ (publish) | ❌ | ❌ | Command |
+| **Event** | ❌ | ✅ (subscribe) | ✅ | ✅ | Admin (rebuild) |
+| **Query** | ❌ | ❌ | ✅ | ❌ | Query |
+
+Значение по умолчанию: `"All"` — все компоненты в одном процессе.
+
+### Потоки данных по профилям
+
+**Single / BudgetCqrs** (1 деплоймент, DeploymentRole = All):
+
+```
+Client ──▶ [All] ──▶ CommandStore (Postgres)
+                          │
+                    InMemory EventBus
+                          │
+                    ProjectionHandler
+                          │
+                    ReadStore (Postgres, public / ReadModel)
+                          │
+           Client ◀── Query ◀──┘
+```
+
+**Cqrs** (2 деплоймента):
+
+```
+Client ──▶ [Command, port 8080] ──▶ MongoDB (Event Store)
+                                          │
+                                    Postgres EventBus (Outbox)
+                                          │ (межпроцессная доставка)
+                                          ▼
+           [Query, port 8081] ◀── Postgres EventBus (subscribe)
+                  │                       │
+                  │                 ProjectionHandler
+                  │                       │
+                  │                 PostgreSQL (ReadModel)
+                  │                       │
+           Client ◀── Query ◀─────────────┘
+```
+
+**Ceqrs** (3 деплоймента):
+
+```
+Client ──▶ [Command, port 8080] ──▶ MongoDB (Event Store)
+                                          │
+                                    Kafka (publish)
+                                          │
+                                          ▼
+           [Event] ◀────────────── Kafka (subscribe)
+                  │
+            ProjectionHandler
+                  │
+            ScyllaDB (проекции)
+                  │
+                  ▼
+           [Query, port 8081] ──▶ ScyllaDB (чтение)
+                  │
+           Client ◀── Query ◀──┘
+```
 
 ### Конфигурация в appsettings
 
@@ -622,13 +688,28 @@ services.AddReadStoreScylla<IMyContext, MyReadModel>(options =>
 }
 ```
 
-### Program.cs — автоматический выбор провайдеров
+> **Важно:** InMemory EventBus допустим только для однопроцессных профилей (Single, BudgetCqrs).
+> Для многопроцессных профилей (Cqrs, Ceqrs) EventBus должен быть межпроцессным — Postgres (Outbox) или Kafka.
 
-`Program.cs` содержит три блока `switch`, которые выбирают реализации на основе конфигурации:
+### Program.cs — условная регистрация по DeploymentRole
 
-1. **CommandStore** (`CommandStore:Provider`): `Postgres` → EF Core + CommandDbContext, `Mongo` → `AddEventStoreMongo`
-2. **EventBus** (`EventBus:Strategy`): `InMemory` / `Kafka` / `Postgres`
-3. **ReadStore** (`ReadStore:Provider`): `Postgres` → `AddReadStorePostgres`, `Redis` → `AddReadStoreRedis`, `Scylla` → `AddReadStoreScylla`
+`Program.cs` читает `DeploymentRole` из конфигурации и условно регистрирует компоненты:
+
+```csharp
+var deploymentRole = builder.Configuration["DeploymentRole"] ?? "All";
+
+// CommandStore — только для Command и All
+if (deploymentRole is "Command" or "All") { /* Postgres / Mongo */ }
+
+// EventBus — для всех кроме Query
+if (deploymentRole is not "Query") { /* InMemory / Kafka / Postgres */ }
+
+// ReadStore — для Event, Query и All
+if (deploymentRole is "Event" or "Query" or "All") { /* Postgres / Redis / Scylla */ }
+
+// ProjectionHandler — только для Event и All
+if (deploymentRole is "Event" or "All") { /* ChatProjectionHandler, RebuildService */ }
+```
 
 ### Docker-образы
 
@@ -643,17 +724,18 @@ ghcr.io/{owner}/chat:latest       ← алиас для Single
 ```
 
 `Dockerfile` принимает `ARG DEPLOYMENT_PROFILE` и устанавливает `ENV ASPNETCORE_ENVIRONMENT`.
+Один и тот же образ используется для всех ролей — `DeploymentRole` задаётся через переменную окружения в docker-compose.
 
 ### Docker Compose
 
 В папке `docker/` находятся compose-файлы для каждого профиля:
 
-| Файл | Сервисы |
-|------|---------|
-| `docker-compose.single.yml` | app + postgres |
-| `docker-compose.budget-cqrs.yml` | app + postgres (shared) |
-| `docker-compose.cqrs.yml` | app + mongo + postgres |
-| `docker-compose.ceqrs.yml` | cmd-app + evt-app + qry-app + mongo + kafka + zookeeper + scylla |
+| Файл | Сервисы | DeploymentRole |
+|------|---------|----------------|
+| `docker-compose.single.yml` | app + postgres | All (по умолчанию) |
+| `docker-compose.budget-cqrs.yml` | app + postgres | All (по умолчанию) |
+| `docker-compose.cqrs.yml` | chat-command + chat-query + mongo + postgres | Command, Query |
+| `docker-compose.ceqrs.yml` | chat-command + chat-event + chat-query + mongo + kafka + zookeeper + scylla | Command, Event, Query |
 
 Запуск:
 
@@ -661,7 +743,10 @@ ghcr.io/{owner}/chat:latest       ← алиас для Single
 # Single (dev/demo)
 docker compose -f docker/docker-compose.single.yml up -d
 
-# CEQRS (максимальный перформанс)
+# CQRS (2 деплоймента: Command + Query)
+docker compose -f docker/docker-compose.cqrs.yml up -d
+
+# CEQRS (3 деплоймента: Command + Event + Query)
 docker compose -f docker/docker-compose.ceqrs.yml up -d
 ```
 
@@ -671,8 +756,8 @@ docker compose -f docker/docker-compose.ceqrs.yml up -d
 |----------|---------|
 | Локальная разработка, демо, MVP | **Single** |
 | Продакшен с умеренной нагрузкой, бюджетная инфраструктура | **BudgetCqrs** |
-| Продакшен, когда Command DB и Read DB имеют разные паттерны доступа | **Cqrs** |
-| Высоконагруженный продакшен, необходимы независимое масштабирование и Event Sourcing | **Ceqrs** |
+| Продакшен, разные СУБД для записи и чтения, 2 процесса | **Cqrs** |
+| Высоконагруженный продакшен, независимое масштабирование C/E/Q | **Ceqrs** |
 
 ---
 

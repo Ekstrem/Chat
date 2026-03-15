@@ -6,6 +6,11 @@ version: "3.8"
 # Read DB: ScyllaDB (денормализованные проекции).
 # EventBus: Apache Kafka.
 # Максимальный перформанс — полная реализация CEQRS.
+#
+# Поток данных:
+#   Client → [chat-command] → MongoDB → Kafka (publish) →
+#            [chat-event]   ← Kafka (subscribe) → ProjectionHandler → ScyllaDB →
+#            [chat-query]   ← ScyllaDB
 
 services:
   # --- Деплоймент 1: Command ---
@@ -15,6 +20,7 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Ceqrs
+      - DeploymentRole=Command
       - CommandStore__Mongo__ConnectionString=mongodb://mongo:27017
       - CommandStore__Mongo__DatabaseName=chat_commands
       - EventBus__Strategy=Kafka
@@ -32,8 +38,7 @@ services:
     image: ghcr.io/ekstrem/chat:ceqrs
     environment:
       - ASPNETCORE_ENVIRONMENT=Ceqrs
-      - CommandStore__Mongo__ConnectionString=mongodb://mongo:27017
-      - CommandStore__Mongo__DatabaseName=chat_commands
+      - DeploymentRole=Event
       - ReadStore__Provider=Scylla
       - ReadStore__Scylla__ContactPoints__0=scylla
       - ReadStore__Scylla__Keyspace=chat_read
@@ -43,8 +48,6 @@ services:
       - EventBus__Kafka__TopicPrefix=chat-events
       - EventBus__Kafka__GroupId=chat-event-group
     depends_on:
-      mongo:
-        condition: service_healthy
       scylla:
         condition: service_healthy
       kafka:
@@ -57,6 +60,7 @@ services:
       - "8081:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Ceqrs
+      - DeploymentRole=Query
       - ReadStore__Provider=Scylla
       - ReadStore__Scylla__ContactPoints__0=scylla
       - ReadStore__Scylla__Keyspace=chat_read
