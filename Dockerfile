@@ -5,12 +5,8 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# NuGet config — use only nuget.org + local packages
-COPY src/nuget.config .
-COPY local-nupkg/ /local-nupkg/
-RUN sed -i '/<add key="github-ekstrem"/d' nuget.config && \
-    sed -i '/<github-ekstrem>/,/<\/github-ekstrem>/d' nuget.config && \
-    sed -i 's|../../DigiTFactory.Libraries/nupkg|/local-nupkg|g' nuget.config
+# NuGet — use only nuget.org (all DigiTFactory packages published there)
+RUN echo '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" /></packageSources></configuration>' > nuget.config
 
 # Copy csproj files and restore
 COPY src/Chat.Api/Chat.Api.csproj Chat.Api/
