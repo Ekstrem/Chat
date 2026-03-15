@@ -21,16 +21,35 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Checkout DigiTFactory.Libraries
+      uses: actions/checkout@v4
+      with:
+        repository: Ekstrem/DigiTFactory.Libraries
+        path: DigiTFactory.Libraries
+        token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
-    - name: Remove LocalLibraries NuGet source (CI uses GitHub Packages)
-      run: sed -i '/<add key="LocalLibraries"/d' src/nuget.config
+    - name: Pack DigiTFactory.Libraries
+      run: |
+        cd DigiTFactory.Libraries
+        dotnet pack Source/DigiTFactory.Libraries.SeedWorks.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.InMemory/DigiTFactory.Libraries.EventBus.InMemory.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.Kafka/DigiTFactory.Libraries.EventBus.Kafka.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.Postgres/DigiTFactory.Libraries.EventBus.Postgres.csproj -c Release -o nupkg -v minimal
+        dotnet pack CommandRepository.Mongo/DigiTFactory.Libraries.CommandRepository.Mongo.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Postgres/DigiTFactory.Libraries.ReadRepository.Postgres.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Redis/DigiTFactory.Libraries.ReadRepository.Redis.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Scylla/DigiTFactory.Libraries.ReadRepository.Scylla.csproj -c Release -o nupkg -v minimal
 
-    - name: Authenticate GitHub NuGet
-      run: dotnet nuget update source github-ekstrem --username Ekstrem --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --configfile src/nuget.config
+    - name: Configure NuGet for CI
+      run: |
+        sed -i '/<add key="github-ekstrem"/d' src/nuget.config
+        sed -i '/<github-ekstrem>/,/<\/github-ekstrem>/d' src/nuget.config
+        sed -i 's|../../DigiTFactory.Libraries/nupkg|DigiTFactory.Libraries/nupkg|g' src/nuget.config
 
     - name: Restore dependencies
       run: dotnet restore src/Chat.sln
@@ -59,6 +78,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Checkout DigiTFactory.Libraries
+      uses: actions/checkout@v4
+      with:
+        repository: Ekstrem/DigiTFactory.Libraries
+        path: DigiTFactory.Libraries
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pack DigiTFactory.Libraries for Docker
+      run: |
+        cd DigiTFactory.Libraries
+        dotnet pack Source/DigiTFactory.Libraries.SeedWorks.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.InMemory/DigiTFactory.Libraries.EventBus.InMemory.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.Kafka/DigiTFactory.Libraries.EventBus.Kafka.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.Postgres/DigiTFactory.Libraries.EventBus.Postgres.csproj -c Release -o nupkg -v minimal
+        dotnet pack CommandRepository.Mongo/DigiTFactory.Libraries.CommandRepository.Mongo.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Postgres/DigiTFactory.Libraries.ReadRepository.Postgres.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Redis/DigiTFactory.Libraries.ReadRepository.Redis.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Scylla/DigiTFactory.Libraries.ReadRepository.Scylla.csproj -c Release -o nupkg -v minimal
+        cp -r nupkg ../local-nupkg
+
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
       with:
@@ -83,7 +122,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           DEPLOYMENT_PROFILE=${{ matrix.profile.name }}
 
   docker-latest:
@@ -96,6 +134,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Checkout DigiTFactory.Libraries
+      uses: actions/checkout@v4
+      with:
+        repository: Ekstrem/DigiTFactory.Libraries
+        path: DigiTFactory.Libraries
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pack DigiTFactory.Libraries for Docker
+      run: |
+        cd DigiTFactory.Libraries
+        dotnet pack Source/DigiTFactory.Libraries.SeedWorks.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.InMemory/DigiTFactory.Libraries.EventBus.InMemory.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.Kafka/DigiTFactory.Libraries.EventBus.Kafka.csproj -c Release -o nupkg -v minimal
+        dotnet pack EventBus.Postgres/DigiTFactory.Libraries.EventBus.Postgres.csproj -c Release -o nupkg -v minimal
+        dotnet pack CommandRepository.Mongo/DigiTFactory.Libraries.CommandRepository.Mongo.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Postgres/DigiTFactory.Libraries.ReadRepository.Postgres.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Redis/DigiTFactory.Libraries.ReadRepository.Redis.csproj -c Release -o nupkg -v minimal
+        dotnet pack ReadRepository.Scylla/DigiTFactory.Libraries.ReadRepository.Scylla.csproj -c Release -o nupkg -v minimal
+        cp -r nupkg ../local-nupkg
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
@@ -111,5 +169,4 @@ jobs:
         push: true
         tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         build-args: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           DEPLOYMENT_PROFILE=Single

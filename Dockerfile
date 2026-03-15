@@ -3,13 +3,14 @@ WORKDIR /app
 EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG GITHUB_TOKEN
 WORKDIR /src
 
-# NuGet config with GitHub Packages auth
+# NuGet config — use only nuget.org + local packages
 COPY src/nuget.config .
-RUN sed -i "s/%GITHUB_TOKEN%/${GITHUB_TOKEN}/g" nuget.config
-RUN sed -i '/<add key="LocalLibraries"/d' nuget.config
+COPY local-nupkg/ /local-nupkg/
+RUN sed -i '/<add key="github-ekstrem"/d' nuget.config && \
+    sed -i '/<github-ekstrem>/,/<\/github-ekstrem>/d' nuget.config && \
+    sed -i 's|../../DigiTFactory.Libraries/nupkg|/local-nupkg|g' nuget.config
 
 # Copy csproj files and restore
 COPY src/Chat.Api/Chat.Api.csproj Chat.Api/
