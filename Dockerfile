@@ -9,10 +9,7 @@ WORKDIR /src
 # NuGet config with GitHub Packages auth
 COPY src/nuget.config .
 RUN sed -i "s/%GITHUB_TOKEN%/${GITHUB_TOKEN}/g" nuget.config
-
-# Copy local NuGet packages (packed from DigiTFactory.Libraries)
-COPY local-nupkg/ /local-nupkg/
-RUN sed -i 's|../../DigiTFactory.Libraries/nupkg|/local-nupkg|g' nuget.config
+RUN sed -i '/<add key="LocalLibraries"/d' nuget.config
 
 # Copy csproj files and restore
 COPY src/Chat.Api/Chat.Api.csproj Chat.Api/
