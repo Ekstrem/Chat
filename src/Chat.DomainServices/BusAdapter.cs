@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 namespace Chat.DomainServices;
 
 /// <summary>
-/// Адаптер шины: единственный наблюдатель агрегата. Публикует доменное событие в шину
-/// и складывает его в Event Store.
+/// Адаптер шины: единственный наблюдатель агрегата. Сначала фиксирует событие в Event Store,
+/// затем публикует его в шину, поэтому следующая команда гарантированно видит предыдущую.
 /// </summary>
 internal sealed class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicModel>>
 {
@@ -37,15 +37,19 @@ internal sealed class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicM
     {
         var entry = DomainEventEntryFactory.Create(value);
 
+        SaveEvent(entry);
         _eventBus.Publish(value.Event);
-        _ = SaveEventAsync(entry);
     }
 
-    private async Task SaveEventAsync(DomainEventEntry entry)
+    private void SaveEvent(DomainEventEntry entry)
     {
         try
         {
-            await _eventStore.SaveEventAsync(entry, CancellationToken.None).ConfigureAwait(false);
+            // IObserver.OnNext синхронный, а порт Event Store — асинхронный: ждём фиксацию,
+            // чтобы команда не вернула успех до записи события.
+#pragma warning disable QG612
+            _eventStore.SaveEventAsync(entry, CancellationToken.None).GetAwaiter().GetResult();
+#pragma warning restore QG612
         }
         catch (Exception exception)
         {
@@ -54,6 +58,7 @@ internal sealed class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicM
                 "Не удалось сохранить событие {CommandName} агрегата {AggregateId}.",
                 entry.CommandName,
                 entry.Id);
+            throw;
         }
     }
 }
