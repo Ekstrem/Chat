@@ -3,22 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Chat.Api</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="9.0.0" />
-    <PackageReference Include="MassTransit.RabbitMQ" Version="8.2.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="DigiTFactory.Libraries.SeedWorks" Version="0.6.0" />
+    <PackageReference Include="DigiTFactory.Libraries.CommandRepository.Postgres" Version="0.2.1" />
     <PackageReference Include="DigiTFactory.Libraries.EventBus.InMemory" Version="0.1.0" />
-    <PackageReference Include="DigiTFactory.Libraries.EventBus.Kafka" Version="0.1.0" />
-    <PackageReference Include="DigiTFactory.Libraries.EventBus.Postgres" Version="0.1.0" />
-    <PackageReference Include="DigiTFactory.Libraries.CommandRepository.Mongo" Version="0.1.0" />
     <PackageReference Include="DigiTFactory.Libraries.ReadRepository.Postgres" Version="0.1.0" />
-    <PackageReference Include="DigiTFactory.Libraries.ReadRepository.Redis" Version="0.1.0" />
-    <PackageReference Include="DigiTFactory.Libraries.ReadRepository.Scylla" Version="0.1.0" />
   </ItemGroup>
 
   <ItemGroup>

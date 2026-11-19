@@ -2,13 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Chat.Application</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="DigiTFactory.Libraries.SeedWorks" Version="0.6.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Chat.Domain\Chat.Domain.csproj" />
     <ProjectReference Include="..\Chat.DomainServices\Chat.DomainServices.csproj" />
     <ProjectReference Include="..\Chat.InternalContracts\Chat.InternalContracts.csproj" />
   </ItemGroup>

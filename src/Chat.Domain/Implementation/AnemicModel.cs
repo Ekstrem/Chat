@@ -1,114 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
 using Chat.Domain.Abstraction;
-using DigiTFactory.Libraries.SeedWorks.Characteristics;
-using DigiTFactory.Libraries.SeedWorks.LifeCircle;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
-namespace Chat.Domain.Implementation
+namespace Chat.Domain.Implementation;
+
+/// <summary>
+/// Анемичная модель сообщения — контейнер состояния агрегата Message.
+/// Неизменяема: любое изменение порождает новую модель.
+/// </summary>
+internal sealed class AnemicModel : IChatAnemicModel
 {
-    public class AnemicModel : IChatAnemicModel
-    {
-        private readonly Guid _id;
-        private readonly long _version;
-        private readonly string _commandName;
-        private readonly string _subjectName;
-        private readonly Guid _correlationToken;
-        private readonly IChatRoot _root;
-        private readonly IChatActor _actor;
-        private readonly IChatFeedback _feedback;
-        private readonly IEnumerable<IChatMessage> _messages;
+    public Guid Id { get; init; } = Guid.NewGuid();
 
-        protected AnemicModel(
-            Guid id,
-            long version,
-            Guid correlationToken,
-            string commandName,
-            string subjectName,
-            IChatRoot root,
-            IChatActor actor,
-            IChatFeedback feedback,
-            IEnumerable<IChatMessage> messages)
+    public long Version { get; init; }
+
+    public string CommandName { get; init; } = string.Empty;
+
+    public string SubjectName { get; init; } = string.Empty;
+
+    public Guid CorrelationToken { get; init; }
+
+    public IMessageRoot Root { get; init; } = MessageRoot.Empty();
+
+    public IMessageText Text { get; init; } = MessageText.Empty();
+
+    public IAddressee Addressee { get; init; } = MessageAddressee.Empty();
+
+    public IAttachmentList Attachments { get; init; } = MessageAttachments.Empty();
+
+    public Guid? ReplyTo { get; init; }
+
+    public IExtendedFields ExtendedFields { get; init; } = MessageExtendedFields.Empty();
+
+    public IReadOnlyList<IReadReceipt> ReadReceipts { get; init; } = Array.Empty<IReadReceipt>();
+
+    public IDictionary<string, IValueObject> Invariants => GetValueObjects();
+
+    public IDictionary<string, IValueObject> GetValueObjects()
+        => new Dictionary<string, IValueObject>(StringComparer.Ordinal)
         {
-            _id = id;
-            _version = version;
-            _correlationToken = correlationToken;
-            _commandName = commandName;
-            _subjectName = subjectName;
-            _root = root;
-            _actor = actor;
-            _feedback = feedback;
-            _messages = messages;
-        }
+            ["Root"] = Root,
+            ["Text"] = Text,
+            ["To"] = Addressee,
+            ["Attachments"] = Attachments,
+            ["Reply"] = new MessageReply(ReplyTo),
+            ["ExtendedFields"] = ExtendedFields,
+            ["ReadReceipts"] = new MessageReceipts(ReadReceipts)
+        };
 
-        /// <summary>
-        /// Идентификатор агрегата.
-        /// </summary>
-        public Guid Id => _id;
-
-        /// <summary>
-        /// Версия агрегата.
-        /// </summary>
-        public long Version => _version;
-
-        /// <summary>
-        /// Маркер корреляции.
-        /// </summary>
-        public Guid CorrelationToken => _correlationToken;
-
-        public string CommandName => _commandName;
-
-        public string SubjectName => _subjectName;
-
-        public IDictionary<string, IValueObject> Invariants => GetValueObjects();
-
-        public IDictionary<string, IValueObject> GetValueObjects()
-            => ValueObjectHelper.GetValueObjects(this);
-
-        /// <summary>
-        /// Корень агрегата.
-        /// </summary>
-        public IChatRoot Root => _root;
-
-        /// <summary>
-        /// Данные пользователя.
-        /// </summary>
-        public IChatActor Actor => _actor;
-
-        /// <summary>
-        /// Полученный ответ.
-        /// </summary>
-        public IChatFeedback Feedback => _feedback;
-
-        /// <summary>
-        /// Сообщения.
-        /// </summary>
-        public IEnumerable<IChatMessage> Messages => _messages;
-
-        public static IChatAnemicModel Create(
-            Guid id,
-            long version,
-            Guid correlationToken,
-            string commandName,
-            string subjectName,
-            IChatRoot root,
-            IChatActor actor,
-            IChatFeedback feedback,
-            IEnumerable<IChatMessage> messages)
-            => new AnemicModel(id, version,
-                correlationToken, commandName, subjectName,
-                root, actor, feedback, messages);
-
-        public static IChatAnemicModel Create(
-            Guid id,
-            ICommandToAggregate command,
-            IChatRoot root,
-            IChatActor actor,
-            IChatFeedback feedback,
-            IEnumerable<IChatMessage> messages)
-            => new AnemicModel(id,
-                command.Version, command.CorrelationToken, command.CommandName, command.SubjectName,
-                root, actor, feedback, messages);
-
-    }
+    /// <summary>Создать пустую модель с заданным идентификатором (fallback провайдера).</summary>
+    public static AnemicModel Create(Guid id) => new() { Id = id };
 }

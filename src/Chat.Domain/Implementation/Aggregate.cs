@@ -1,161 +1,176 @@
 ﻿using Chat.Domain.Abstraction;
-using System;
-using System.Collections.Generic;
-using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
-using DigiTFactory.Libraries.SeedWorks.Result;
-using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using Chat.Domain.Specifications;
-using DigiTFactory.Libraries.SeedWorks.Monads;
-using System.Linq;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.Invariants;
+using DigiTFactory.Libraries.SeedWorks.Result;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
-namespace Chat.Domain.Implementation
+namespace Chat.Domain.Implementation;
+
+/// <summary>
+/// РђРіСЂРµРіР°С‚ Message: РєРѕРјР°РЅРґС‹ SendMessage / AddAttachment / ReadMessage.
+/// РљР°Р¶РґР°СЏ РєРѕРјР°РЅРґР° РІРѕР·РІСЂР°С‰Р°РµС‚ <see cref="AggregateResult{TBoundedContext,TModel}"/> СЃ РґРѕРјРµРЅРЅС‹Рј СЃРѕР±С‹С‚РёРµРј.
+/// </summary>
+internal sealed class Aggregate : IChatAggregate
 {
-    public class Aggregate : IChatAggregate
+    private readonly IChatAnemicModel _model;
+
+    private Aggregate(IChatAnemicModel model) => _model = model;
+
+    public static Aggregate CreateInstance(IChatAnemicModel model) => new(model);
+
+    public Guid Id => _model.Id;
+
+    public long Version => _model.Version;
+
+    public string CommandName => _model.CommandName;
+
+    public string SubjectName => _model.SubjectName;
+
+    public Guid CorrelationToken => _model.CorrelationToken;
+
+    public IDictionary<string, IValueObject> Invariants => _model.Invariants;
+
+    public IDictionary<string, IValueObject> GetValueObjects() => _model.GetValueObjects();
+
+    /// <summary>РЎРѕР·РґР°С‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ (РєРѕРјР°РЅРґР° SendMessage).</summary>
+    public AggregateResult<IChat, IChatAnemicModel> SendMessage(
+        ICommandToAggregate command,
+        string product,
+        string role,
+        string to,
+        string text,
+        IEnumerable<Guid>? attachments,
+        Guid? replyTo,
+        IReadOnlyDictionary<string, string>? extendedFields)
     {
+        if (!MessageText.TryCreate(text, out var messageText, out var textReason))
+        {
+            return Fail(command, textReason);
+        }
 
-        private readonly IChatAnemicModel _anemicModel;
+        if (!MessageAddressee.TryCreate(to, out var addressee, out var toReason))
+        {
+            return Fail(command, toReason);
+        }
 
-        private Aggregate(IChatAnemicModel anemicModel) => _anemicModel = anemicModel;
+        var version = ResolveVersion(command);
+        var candidate = new AnemicModel
+        {
+            Id = _model.Id == Guid.Empty ? Guid.NewGuid() : _model.Id,
+            Version = version,
+            CommandName = command.CommandName,
+            SubjectName = command.SubjectName,
+            CorrelationToken = command.CorrelationToken,
+            Root = MessageRoot.CreateInstance(product, role, version),
+            Text = messageText,
+            Addressee = addressee,
+            Attachments = MessageAttachments.CreateInstance(attachments),
+            ReplyTo = replyTo,
+            ExtendedFields = MessageExtendedFields.CreateInstance(extendedFields),
+            ReadReceipts = Array.Empty<IReadReceipt>()
+        };
 
-        public static Aggregate Create(IChatAnemicModel anemicModel) => new Aggregate(anemicModel);
+        var data = BusinessOperationData<IChat, IChatAnemicModel>.Commit<IChat, IChatAnemicModel>(_model, candidate);
+        var textValidator = new MessageTextValidator();
+        var addresseeValidator = new AddresseeValidator();
+        var newMessageValidator = new NewMessageValidator();
 
-        #region Aggregate tech  props
+        return textValidator.IsSatisfiedBy(data) && addresseeValidator.IsSatisfiedBy(data) && newMessageValidator.IsSatisfiedBy(data)
+            ? new AggregateResultSuccess<IChat, IChatAnemicModel>(data)
+            : new AggregateResultException<IChat, IChatAnemicModel>(data, newMessageValidator, textValidator, addresseeValidator);
+    }
 
-        public Guid Id => _anemicModel.Id;
+    /// <summary>Р”РѕР±Р°РІРёС‚СЊ РІР»РѕР¶РµРЅРёРµ (РєРѕРјР°РЅРґР° AddAttachment).</summary>
+    public AggregateResult<IChat, IChatAnemicModel> AddAttachment(ICommandToAggregate command, Guid attachmentId)
+    {
+        var data = BusinessOperationData<IChat, IChatAnemicModel>.Commit<IChat, IChatAnemicModel>(_model, _model);
+        var existing = new ExistingMessageValidator();
+        if (!existing.IsSatisfiedBy(data))
+        {
+            return Fail(command, existing.Reason);
+        }
 
-        public long Version => _anemicModel.Version;
+        if (attachmentId == Guid.Empty)
+        {
+            return Fail(command, "attachmentId: РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РІР»РѕР¶РµРЅРёСЏ РѕР±СЏР·Р°С‚РµР»РµРЅ");
+        }
 
-        public string CommandName => _anemicModel.CommandName;
+        var attachments = _model.Attachments.Items.Contains(attachmentId)
+            ? _model.Attachments.Items
+            : _model.Attachments.Items.Append(attachmentId).ToList();
 
-        public string SubjectName => _anemicModel.SubjectName;
+        var candidate = new AnemicModel
+        {
+            Id = _model.Id,
+            Version = ResolveVersion(command),
+            CommandName = command.CommandName,
+            SubjectName = command.SubjectName,
+            CorrelationToken = command.CorrelationToken,
+            Root = _model.Root,
+            Text = _model.Text,
+            Addressee = _model.Addressee,
+            Attachments = MessageAttachments.CreateInstance(attachments),
+            ReplyTo = _model.ReplyTo,
+            ExtendedFields = _model.ExtendedFields,
+            ReadReceipts = _model.ReadReceipts
+        };
 
-        public Guid CorrelationToken => _anemicModel.CorrelationToken;
+        return new AggregateResultSuccess<IChat, IChatAnemicModel>(
+            BusinessOperationData<IChat, IChatAnemicModel>.Commit<IChat, IChatAnemicModel>(_model, candidate));
+    }
 
-        public IDictionary<string, IValueObject> Invariants => _anemicModel.Invariants;
+    /// <summary>РћС‚РјРµС‚РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ РїСЂРѕС‡РёС‚Р°РЅРЅС‹Рј (РєРѕРјР°РЅРґР° ReadMessage).</summary>
+    public AggregateResult<IChat, IChatAnemicModel> ReadMessage(ICommandToAggregate command, string addressee)
+    {
+        var data = BusinessOperationData<IChat, IChatAnemicModel>.Commit<IChat, IChatAnemicModel>(_model, _model);
+        var existing = new ExistingMessageValidator();
+        if (!existing.IsSatisfiedBy(data))
+        {
+            return Fail(command, existing.Reason);
+        }
 
-        public IDictionary<string, IValueObject> GetValueObjects()
-            => _anemicModel.GetValueObjects();
+        if (string.IsNullOrWhiteSpace(addressee))
+        {
+            return Fail(command, "addressee: Р°РґСЂРµСЃР°С‚ РѕР±СЏР·Р°С‚РµР»РµРЅ");
+        }
 
-        #endregion
+        var moment = ResolveVersion(command);
+        var receipts = _model.ReadReceipts
+            .Where(receipt => !string.Equals(receipt.Addressee, addressee, StringComparison.Ordinal))
+            .Append(MessageReadReceipt.CreateInstance(addressee, moment))
+            .ToList();
 
-        #region AnemicModel
+        var candidate = new AnemicModel
+        {
+            Id = _model.Id,
+            Version = moment,
+            CommandName = command.CommandName,
+            SubjectName = command.SubjectName,
+            CorrelationToken = command.CorrelationToken,
+            Root = _model.Root,
+            Text = _model.Text,
+            Addressee = _model.Addressee,
+            Attachments = _model.Attachments,
+            ReplyTo = _model.ReplyTo,
+            ExtendedFields = _model.ExtendedFields,
+            ReadReceipts = receipts
+        };
 
-        /// <summary>
-        /// Корень агрегата.
-        /// </summary>
-        public IChatRoot Root => _anemicModel.Root;
+        return new AggregateResultSuccess<IChat, IChatAnemicModel>(
+            BusinessOperationData<IChat, IChatAnemicModel>.Commit<IChat, IChatAnemicModel>(_model, candidate));
+    }
 
-        /// <summary>
-        /// Данные пользователя.
-        /// </summary>
-        public IChatActor Actor => _anemicModel.Actor;
+    private static long ResolveVersion(ICommandToAggregate command)
+        => command.Version > 0
+            ? command.Version
+            : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        /// <summary>
-        /// Полученный ответ.
-        /// </summary>
-        public IChatFeedback Feedback => _anemicModel.Feedback;
-
-        /// <summary>
-        /// Сообщения.
-        /// </summary>
-        public IEnumerable<IChatMessage> Messages => _anemicModel.Messages;
-
-        #endregion
-
-        /// <summary>
-        /// Абонент задал вопрос в чате.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> SubscriberRequestQuestion(IChatAnemicModel model)
-            => BusinessOperationData
-                .Commit(_anemicModel, model)
-                .ValidateCommand(
-                    new IsNewSubscriberRequestValidator());
-
-        /// <summary>
-        /// Бот ответил пользователю.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> BotRepliedToUser(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
-
-        /// <summary>
-        /// Оператор получил обращение на обработку.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> OperatorDequeueRequest(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, model.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => BusinessOperationData
-                    .Commit(_anemicModel, am)
-                    .ValidateCommand(
-                        new IsNotAlreadyDequeuedValidator(),
-                        new IsSessionActiveValidator()));
-
-        /// <summary>
-        /// Оператор ответил на обращение.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> OperatorRepliedToMessage(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
-
-        /// <summary>
-        /// Оператор уточник вопрос.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> OperatorClarifiedQuestion(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
-
-        /// <summary>
-        /// Абонент оценил работу.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> SubscriberGaveFeedback(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, model.Feedback, _anemicModel.Messages)
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
-
-        /// <summary>
-        /// Абонент загрузил медиа-контент.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> SubscriberDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
-
-        /// <summary>
-        /// Оператор загрузил медиа-контент.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> OperatorDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, _anemicModel.Feedback, _anemicModel.Messages.Concat(model.Messages))
-                .PipeTo(am => new ChatResult(_anemicModel, am, DomainOperationResultEnum.Success, default));
-
-        /// <summary>
-        /// Сессия закончилась по триггеру.
-        /// </summary>
-        public AggregateResult<IChat, IChatAnemicModel> SessionEndingByTrigger(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => AnemicModel
-                .Create(
-                    _anemicModel.Id, commandMetadata,
-                    _anemicModel.Root, _anemicModel.Actor, model.Feedback, _anemicModel.Messages)
-                .PipeTo(am => BusinessOperationData
-                    .Commit(_anemicModel, am)
-                    .ValidateCommand(
-                        new IsSessionActiveValidator()));
+    private AggregateResult<IChat, IChatAnemicModel> Fail(ICommandToAggregate command, string reason)
+    {
+        _ = command;
+        return new AggregateResultException<IChat, IChatAnemicModel>(
+            BusinessOperationData<IChat, IChatAnemicModel>.Commit<IChat, IChatAnemicModel>(_model, _model),
+            new FailedOperationSpecification(reason));
     }
 }

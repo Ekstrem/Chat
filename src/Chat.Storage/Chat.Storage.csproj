@@ -2,11 +2,21 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Chat.Storage</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
-	  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <PackageReference Include="DigiTFactory.Libraries.SeedWorks" Version="0.6.0" />
+    <PackageReference Include="DigiTFactory.Libraries.CommandRepository.Postgres" Version="0.2.1" />
+    <PackageReference Include="DigiTFactory.Libraries.ReadRepository.Postgres" Version="0.1.0" />
   </ItemGroup>
 
   <ItemGroup>

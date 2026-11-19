@@ -1,35 +1,15 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using DigiTFactory.Libraries.SeedWorks.Monads;
-using System.Collections.Immutable;
-using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.Result;
 
-namespace Chat.DomainServices
+namespace Chat.DomainServices;
+
+/// <summary>Р Р°СЃС€РёСЂРµРЅРёСЏ РґРµРєРѕСЂРёСЂРѕРІР°РЅРёСЏ Р°РіСЂРµРіР°С‚Р° РЅР°Р±Р»СЋРґР°С‚РµР»СЏРјРё.</summary>
+internal static class NotifierExtension
 {
-    internal static class NotifierExtension
-    {
-        public static IChatAggregate PipeNotifierToContract(
-            this IChatAggregate aggregate, List<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
-            => Notifier.Create(aggregate, observers);
-
-        public static IChatAggregate PipeNotifierToContract(
-            this IChatAggregate aggregate, params IObserver<AggregateResult<IChat, IChatAnemicModel>>[] observers)
-            => Notifier.Create(aggregate, observers.ToList());
-
-        public static IQueryable<IChatAggregate> PipeNotifierToContract(
-            this IQueryable<IChatAggregate> aggregates, List<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
-            => aggregates.Select(m => m.PipeNotifierToContract(observers));
-
-        public static IDisposable Subscribe(this IChatAggregate aggregate, IObserver<IDomainEvent<IChat>> observer)
-            => aggregate is Notifier contractDomainEventNotifier
-                ? contractDomainEventNotifier.Subscribe(observer)
-                : null;
-
-        public static void Subscribe(this ImmutableList<IChatAggregate> aggregates, IObserver<IDomainEvent<IChat>> observer)
-            => aggregates.ForEach(e => e.Do(f => Subscribe(f, observer)));
-    }
+    /// <summary>РћР±РµСЂРЅСѓС‚СЊ Р°РіСЂРµРіР°С‚ РІ <see cref="Notifier"/> СЃ СѓРєР°Р·Р°РЅРЅС‹РјРё РЅР°Р±Р»СЋРґР°С‚РµР»СЏРјРё.</summary>
+    public static IChatAggregate PipeNotifierToContract(
+        this IChatAggregate aggregate,
+        IEnumerable<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
+        => Notifier.Create(aggregate, observers);
 }

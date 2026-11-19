@@ -1,112 +1,78 @@
-﻿using Chat.Domain;
+using Chat.Domain;
 using Chat.Domain.Abstraction;
 using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using DigiTFactory.Libraries.SeedWorks.Events;
-using DigiTFactory.Libraries.SeedWorks.Monads;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
-using System;
-using System.Collections.Generic;
-using DigiTFactory.Libraries.SeedWorks.Reactive;
 
-namespace Chat.DomainServices
+namespace Chat.DomainServices;
+
+/// <summary>
+/// Декоратор агрегата: после каждой успешной бизнес-операции уведомляет наблюдателей
+/// (шину событий) результатом операции.
+/// </summary>
+internal sealed class Notifier :
+    DomainEventNotifier<IChat, IChatAggregate>,
+    IChatAggregate
 {
-    internal class Notifier :
-        DomainEventNotifier<IChat, IChatAggregate>,
-        IChatAggregate,
-        IObservable<AggregateResult<IChat, IChatAnemicModel>>
+    private readonly IChatAggregate _aggregate;
+    private readonly IReadOnlyList<IObserver<AggregateResult<IChat, IChatAnemicModel>>> _observers;
+
+    private Notifier(
+        IChatAggregate aggregate,
+        IReadOnlyList<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
+        : base(aggregate)
     {
-        private readonly List<IObserver<AggregateResult<IChat, IChatAnemicModel>>> _observers;
+        _aggregate = aggregate;
+        _observers = observers;
+    }
 
-        private Notifier(IChatAggregate aggregate, List<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
-            : base(aggregate) => _observers = observers;
+    public static IChatAggregate Create(
+        IChatAggregate aggregate,
+        IEnumerable<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
+        => new Notifier(aggregate, observers.ToList());
 
-        #region Aggregate Tech Props
+    public Guid Id => _aggregate.Id;
 
-        public Guid Id => Aggregate.Id;
+    public long Version => _aggregate.Version;
 
-        public long Version => Aggregate.Version;
+    public string CommandName => _aggregate.CommandName;
 
-        public string CommandName => Aggregate.CommandName;
+    public string SubjectName => _aggregate.SubjectName;
 
-        public string SubjectName => Aggregate.SubjectName;
+    public Guid CorrelationToken => _aggregate.CorrelationToken;
 
-        public Guid CorrelationToken => Aggregate.CorrelationToken;
+    public IDictionary<string, IValueObject> Invariants => _aggregate.Invariants;
 
-        public IDictionary<string, IValueObject> Invariants => Aggregate.Invariants;
+    public IDictionary<string, IValueObject> GetValueObjects() => _aggregate.GetValueObjects();
 
-        public IDictionary<string, IValueObject> GetValueObjects()
-            => Aggregate.GetValueObjects();
+    public AggregateResult<IChat, IChatAnemicModel> SendMessage(
+        ICommandToAggregate command,
+        string product,
+        string role,
+        string to,
+        string text,
+        IEnumerable<Guid>? attachments,
+        Guid? replyTo,
+        IReadOnlyDictionary<string, string>? extendedFields)
+        => Notify(_aggregate.SendMessage(command, product, role, to, text, attachments, replyTo, extendedFields));
 
-        #endregion
+    public AggregateResult<IChat, IChatAnemicModel> AddAttachment(ICommandToAggregate command, Guid attachmentId)
+        => Notify(_aggregate.AddAttachment(command, attachmentId));
 
-        public IChatRoot Root => Aggregate.Root;
+    public AggregateResult<IChat, IChatAnemicModel> ReadMessage(ICommandToAggregate command, string addressee)
+        => Notify(_aggregate.ReadMessage(command, addressee));
 
-        public IEnumerable<IChatMessage> Messages => Aggregate.Messages;
-
-        public IChatActor Actor => Aggregate.Actor;
-
-        public IChatFeedback Feedback => Aggregate.Feedback;
-
-        public AggregateResult<IChat, IChatAnemicModel> BotRepliedToUser(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .BotRepliedToUser(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> OperatorClarifiedQuestion(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .OperatorClarifiedQuestion(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> OperatorDequeueRequest(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .OperatorDequeueRequest(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> OperatorDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .OperatorDownloadMedia(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> OperatorRepliedToMessage(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .OperatorRepliedToMessage(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> SessionEndingByTrigger(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .SessionEndingByTrigger(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> SubscriberDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .SubscriberDownloadMedia(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> SubscriberGaveFeedback(IChatAnemicModel model, ICommandToAggregate commandMetadata)
-            => Aggregate
-                .SubscriberGaveFeedback(model, commandMetadata)
-                .Do(MatchAndPushNotification);
-
-        public AggregateResult<IChat, IChatAnemicModel> SubscriberRequestQuestion(IChatAnemicModel model)
-            => Aggregate
-                .SubscriberRequestQuestion(model)
-                .Do(MatchAndPushNotification);
-
-        public IDisposable Subscribe(IObserver<AggregateResult<IChat, IChatAnemicModel>> observer)
-            => Unsubscriber<AggregateResult<IChat, IChatAnemicModel>>.Subscribe(_observers, observer);
-
-        private void WithObservablesDo(Action<IObserver<AggregateResult<IChat, IChatAnemicModel>>> action)
-            => _observers.ForEach(x => action.Invoke(x));
-
-        private void MatchAndPushNotification(AggregateResult<IChat, IChatAnemicModel> result)
+    private AggregateResult<IChat, IChatAnemicModel> Notify(AggregateResult<IChat, IChatAnemicModel> result)
+    {
+        if (result.Result == DomainOperationResultEnum.Success)
         {
-            WithObservablesDo(a => a.OnNext(result));
+            foreach (var observer in _observers)
+            {
+                observer.OnNext(result);
+            }
         }
 
-        internal static IChatAggregate Create(
-            IChatAggregate aggregate,
-            List<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
-            => new Notifier(aggregate, observers);
+        return result;
     }
 }

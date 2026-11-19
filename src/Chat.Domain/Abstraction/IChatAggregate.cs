@@ -1,59 +1,28 @@
-﻿using DigiTFactory.Libraries.SeedWorks.Characteristics;
+using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
-namespace Chat.Domain.Abstraction
+namespace Chat.Domain.Abstraction;
+
+/// <summary>
+/// Контракт агрегата Message: команды канала (запись).
+/// </summary>
+public interface IChatAggregate : IAggregate<IChat>
 {
-    /// <summary>
-    /// Агрегат чата.
-    /// </summary>
-    public interface IChatAggregate :
-        IAggregate<IChat>,
-        IChatAnemicModel
-    {
-        /// <summary>
-        /// Абонент задал вопрос в чате.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> SubscriberRequestQuestion(IChatAnemicModel model);
+    /// <summary>Создать сообщение (SendMessage).</summary>
+    AggregateResult<IChat, IChatAnemicModel> SendMessage(
+        ICommandToAggregate command,
+        string product,
+        string role,
+        string to,
+        string text,
+        IEnumerable<Guid>? attachments,
+        Guid? replyTo,
+        IReadOnlyDictionary<string, string>? extendedFields);
 
-        /// <summary>
-        /// Бот ответил пользователю.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> BotRepliedToUser(IChatAnemicModel model, ICommandToAggregate commandMetadata);
+    /// <summary>Добавить вложение (AddAttachment).</summary>
+    AggregateResult<IChat, IChatAnemicModel> AddAttachment(ICommandToAggregate command, Guid attachmentId);
 
-        /// <summary>
-        /// Оператор получил обращение на обработку.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> OperatorDequeueRequest(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-
-        /// <summary>
-        /// Оператор ответил на обращение.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> OperatorRepliedToMessage(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-
-        /// <summary>
-        /// Оператор уточник вопрос.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> OperatorClarifiedQuestion(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-
-        /// <summary>
-        /// Абонент оценил работу.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> SubscriberGaveFeedback(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-
-        /// <summary>
-        /// Абонент загрузил медиа-контент.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> SubscriberDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-
-        /// <summary>
-        /// Оператор загрузил медиа-контент.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> OperatorDownloadMedia(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-
-        /// <summary>
-        /// Сессия закончилась по триггеру.
-        /// </summary>
-        AggregateResult<IChat, IChatAnemicModel> SessionEndingByTrigger(IChatAnemicModel model, ICommandToAggregate commandMetadata);
-    }
+    /// <summary>Отметить сообщение прочитанным (ReadMessage).</summary>
+    AggregateResult<IChat, IChatAnemicModel> ReadMessage(ICommandToAggregate command, string addressee);
 }

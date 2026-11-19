@@ -6,225 +6,91 @@ using Chat.Domain.Abstraction;
 using Chat.DomainServices;
 using Chat.InternalContracts;
 using Chat.Storage;
-using Chat.Storage.ReadModel;
-using DigiTFactory.Libraries.CommandRepository.Mongo.Extensions;
+using DigiTFactory.Libraries.CommandRepository.Postgres;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Configuration;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Extensions;
 using DigiTFactory.Libraries.EventBus.InMemory.Extensions;
-using DigiTFactory.Libraries.EventBus.Kafka.Extensions;
-using DigiTFactory.Libraries.EventBus.Postgres.Extensions;
 using DigiTFactory.Libraries.ReadRepository.Postgres.Extensions;
-using DigiTFactory.Libraries.ReadRepository.Redis.Extensions;
-using DigiTFactory.Libraries.ReadRepository.Scylla.Extensions;
 using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns.Repository;
-using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ======================================================
-// Deployment Role — определяет ответственность процесса
-// All     = всё в одном (Single, BudgetCqrs)
-// Command = принимает команды, публикует события (Cqrs, Ceqrs)
-// Event   = подписывается на события, строит проекции (Ceqrs)
-// Query   = обслуживает запросы к Read Model (Cqrs, Ceqrs)
-// ======================================================
-var deploymentRole = builder.Configuration["DeploymentRole"] ?? "All";
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+builder.Host.ConfigureContainer<ContainerBuilder>(container => container.RegisterModule<RegisterDependencies>());
 
-// Autofac
-var host = builder.Host;
-host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
-host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+var commandDb = builder.Configuration.GetConnectionString("CommandDb")
+                ?? throw new InvalidOperationException("ConnectionStrings:CommandDb не задан");
+var readDb = builder.Configuration.GetConnectionString("ReadDb")
+             ?? throw new InvalidOperationException("ConnectionStrings:ReadDb не задан");
+
+var eventStoreSchema = builder.Configuration["EventStore:SchemaName"] ?? "Commands";
+var readStoreSchema = builder.Configuration["ReadStore:SchemaName"] ?? "ReadModel";
+
+// Event Store: схемой управляют миграции этой сборки, стратегия — полный Event Sourcing.
+builder.Services.AddDbContext<EventStoreDbContext>(options =>
+    options.UseNpgsql(commandDb, npgsql => npgsql
+        .MigrationsAssembly("Chat.Storage")
+        .EnableRetryOnFailure()));
+
+builder.Services.AddEventStorePostgres<IChat, IChatAnemicModel>(commandDb, options =>
 {
-    containerBuilder.RegisterModule<RegisterDependencies>();
+    options.Strategy = EventStoreStrategy.FullEventSourcing;
+    options.SchemaName = eventStoreSchema;
 });
 
-// ======================================================
-// Command Store — только для ролей Command и All
-// ======================================================
-if (deploymentRole is "Command" or "All")
-{
-    var commandStoreProvider = builder.Configuration["CommandStore:Provider"] ?? "Postgres";
+builder.Services.AddEventBusInMemory();
 
-    switch (commandStoreProvider)
-    {
-        case "Mongo":
-            builder.Services.AddEventStoreMongo<IChat, IChatAnemicModel>(options =>
-            {
-                var mongo = builder.Configuration.GetSection("CommandStore:Mongo");
-                options.ConnectionString = mongo["ConnectionString"] ?? "mongodb://localhost:27017";
-                options.DatabaseName = mongo["DatabaseName"] ?? "chat_commands";
-            });
-            break;
+builder.Services.AddReadStorePostgres<IChat, MessageReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
+builder.Services.AddReadStorePostgres<IChat, InboxRowReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
+builder.Services.AddReadStorePostgres<IChat, LastReadReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
 
-        case "Postgres":
-        default:
-            var connectionString = builder.Configuration.GetConnectionString("ChatDb");
-            builder.Services.AddDbContext<CommandDbContext>(options =>
-                options.UseNpgsql(connectionString,
-                    npgsql => npgsql.MigrationsAssembly("Chat.Storage")));
+// Библиотека регистрирует только IReadRepository; запросам нужен queryable-доступ к проекциям.
+builder.Services.AddScoped<IQueryableReadRepository<IChat, MessageReadModel>>(provider =>
+    new ReadModelQuery<MessageReadModel>(provider.GetRequiredService<ReadDbContext>()));
+builder.Services.AddScoped<IQueryableReadRepository<IChat, InboxRowReadModel>>(provider =>
+    new ReadModelQuery<InboxRowReadModel>(provider.GetRequiredService<ReadDbContext>()));
+builder.Services.AddScoped<IQueryableReadRepository<IChat, LastReadReadModel>>(provider =>
+    new ReadModelQuery<LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
 
-            builder.Services.AddScoped<IQueryRepository<DomainEventEventEntry>, QueryRepository<DomainEventEventEntry>>();
-            builder.Services.AddScoped<IRepository, Repository>();
-            break;
-    }
-}
+// Состояние агрегата: согласованный кеш процесса + проекция messages.
+builder.Services.AddSingleton<MessageStateCache>();
+builder.Services.AddScoped<MessageStateRepository>();
+builder.Services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>>(provider =>
+    provider.GetRequiredService<MessageStateRepository>());
 
-// ======================================================
-// EventBus — для ролей Command (publish), Event (subscribe), All
-// Не нужен для Query — он только читает из Read Store
-// ======================================================
-if (deploymentRole is not "Query")
-{
-    var eventBusSection = builder.Configuration.GetSection("EventBus");
-    var eventBusStrategy = eventBusSection["Strategy"] ?? "InMemory";
+// Проекции: обработчик подписывается на шину.
+builder.Services.AddSingleton<MessageEventHandler>();
 
-    switch (eventBusStrategy)
-    {
-        case "Kafka":
-            builder.Services.AddEventBusKafka(options =>
-            {
-                var kafka = eventBusSection.GetSection("Kafka");
-                options.BootstrapServers = kafka["BootstrapServers"] ?? "localhost:9092";
-                options.TopicPrefix = kafka["TopicPrefix"] ?? "chat-events";
-                options.GroupId = kafka["GroupId"] ?? "chat-group";
-            });
-            break;
+builder.Services.AddMediatR(configuration =>
+    configuration.RegisterServicesFromAssemblyContaining<SendMessageCommand>());
 
-        case "Postgres":
-            builder.Services.AddEventBusPostgres(options =>
-            {
-                var pg = eventBusSection.GetSection("Postgres");
-                options.ConnectionString = pg["ConnectionString"]
-                    ?? builder.Configuration.GetConnectionString("ChatDb")!;
-                options.TableName = pg["TableName"] ?? "domain_events_outbox";
-                if (int.TryParse(pg["PollingInterval"], out var interval))
-                    options.PollingInterval = TimeSpan.FromSeconds(interval);
-                if (int.TryParse(pg["BatchSize"], out var batch))
-                    options.BatchSize = batch;
-            });
-            break;
-
-        case "InMemory":
-        default:
-            builder.Services.AddEventBusInMemory();
-            break;
-    }
-}
-
-// ======================================================
-// Read Store (проекции) — для ролей Event, Query и All
-// Command не работает с Read Model
-// ======================================================
-if (deploymentRole is "Event" or "Query" or "All")
-{
-    var readStoreProvider = builder.Configuration["ReadStore:Provider"] ?? "Postgres";
-
-    switch (readStoreProvider)
-    {
-        case "Redis":
-            builder.Services.AddReadStoreRedis<IChat, ChatReadModel>(options =>
-            {
-                var redis = builder.Configuration.GetSection("ReadStore:Redis");
-                options.ConnectionString = redis["ConnectionString"] ?? "localhost:6379";
-                options.KeyPrefix = redis["KeyPrefix"] ?? "chat:read:";
-                if (int.TryParse(redis["DefaultTtlMinutes"], out var ttl))
-                    options.DefaultTtl = TimeSpan.FromMinutes(ttl);
-            });
-            break;
-
-        case "Scylla":
-            builder.Services.AddReadStoreScylla<IChat, ChatReadModel>(options =>
-            {
-                var scylla = builder.Configuration.GetSection("ReadStore:Scylla");
-                options.ContactPoints = scylla.GetSection("ContactPoints").Get<string[]>()
-                    ?? new[] { "localhost" };
-                options.Keyspace = scylla["Keyspace"] ?? "chat_read";
-                options.TableName = scylla["TableName"] ?? "projections";
-                if (int.TryParse(scylla["ReplicationFactor"], out var rf))
-                    options.ReplicationFactor = rf;
-                if (bool.TryParse(scylla["AutoCreateSchema"], out var autoCreate))
-                    options.AutoCreateSchema = autoCreate;
-            });
-            break;
-
-        case "Postgres":
-        default:
-            var readDbConnectionString = builder.Configuration.GetConnectionString("ChatReadDb");
-            if (string.IsNullOrEmpty(readDbConnectionString))
-                readDbConnectionString = builder.Configuration.GetConnectionString("ChatDb")!;
-
-            var readSchemaName = builder.Configuration["ReadStore:SchemaName"] ?? "ReadModel";
-
-            builder.Services.AddReadStorePostgres<IChat, ChatReadModel, ReadDbContext>(
-                readDbConnectionString,
-                options => options.SchemaName = readSchemaName);
-            break;
-    }
-}
-
-// ======================================================
-// Projection Handler + Rebuild Service
-// Только для ролей Event и All — они строят проекции
-// ======================================================
-if (deploymentRole is "Event" or "All")
-{
-    builder.Services.AddScoped<ChatProjectionHandler>();
-    builder.Services.AddScoped<IRebuildService<IChat>, ChatRebuildService>();
-}
-
-// MassTransit + RabbitMQ
-var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
-builder.Services.AddMassTransit(x =>
-{
-    x.UsingRabbitMq((context, cfg) =>
-    {
-        cfg.Host(rabbitMqConfig["Host"] ?? "localhost", "/", h =>
-        {
-            h.Username(rabbitMqConfig["Username"] ?? "guest");
-            h.Password(rabbitMqConfig["Password"] ?? "guest");
-        });
-
-        cfg.ConfigureEndpoints(context);
-    });
-});
-
-// MediatR
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(SubscriberRequestQuestionCommand).Assembly));
-
-// Controllers + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "Chat Microservice API",
-        Version = "v1",
-        Description = "Reference DDD/CQRS/Event Sourcing microservice"
-    });
-});
+builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Подписать ProjectionHandler на EventBus — только для Event и All
-if (deploymentRole is "Event" or "All")
+// Схема Command DB и Read Store создаётся миграциями сборки Chat.Storage.
+if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
-    var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
-    var projectionHandler = scope.ServiceProvider.GetRequiredService<ChatProjectionHandler>();
-    eventBus.Subscribe<IChat>(projectionHandler);
+    scope.ServiceProvider.GetRequiredService<EventStoreDbContext>().Database.Migrate();
+    scope.ServiceProvider.GetRequiredService<ReadDbContext>().Database.Migrate();
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Chat API v1"));
-}
+var eventBus = app.Services.GetRequiredService<IEventBus>();
+var projectionHandler = app.Services.GetRequiredService<MessageEventHandler>();
+eventBus.Subscribe<IChat>(projectionHandler);
 
-app.UseRouting();
-app.UseAuthorization();
+app.UseSwagger();
+app.UseSwaggerUI(configuration => configuration.SwaggerEndpoint("/swagger/v1/swagger.json", "Chat API v1"));
 app.MapControllers();
-
+app.MapHealthChecks("/hc");
 app.Run();
+
+/// <summary>Точка входа, доступная тестам уровня 3.</summary>
+public partial class Program { }
