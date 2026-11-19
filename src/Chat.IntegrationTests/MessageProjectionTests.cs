@@ -85,9 +85,9 @@ public sealed class MessageProjectionTests
             null);
         await harness.Handler.ProjectAsync(send.Event);
 
-        var model = await harness.StateRepository.GetById(aggregateId, CancellationToken.None);
         var readCommand = CommandToAggregate.Commit(Guid.NewGuid(), "ReadMessage", "@DO");
-        var read = Domain.Implementation.Aggregate.CreateInstance(model[0]).ReadMessage(readCommand, "@DO");
+        var read = ProjectionHarness.AggregateOf((Chat.Domain.Abstraction.IChatAnemicModel)send.BusinessOperationData.Model)
+            .ReadMessage(readCommand, "@DO");
         await harness.Handler.ProjectAsync(read.Event);
 
         var inbox = await harness.ReadDb.Inbox.SingleAsync(row => row.MessageId == aggregateId);
@@ -120,30 +120,6 @@ public sealed class MessageProjectionTests
         Assert.Equal(1, await harness.ReadDb.Inbox.CountAsync(row => row.MessageId == aggregateId));
     }
 
-    [Fact]
-    public async Task Aggregate_state_is_restored_from_projection()
-    {
-        using var harness = new ProjectionHarness();
-        var aggregateId = Guid.NewGuid();
-
-        var result = ProjectionHarness.EmptyAggregate(aggregateId).SendMessage(
-            CommandToAggregate.Commit(Guid.NewGuid(), "SendMessage", "@BE"),
-            "Chat",
-            "@BE",
-            "@DO",
-            "СЃРѕСЃС‚РѕСЏРЅРёРµ",
-            null,
-            null,
-            null);
-        await harness.Handler.ProjectAsync(result.Event);
-
-        var model = await harness.StateRepository.GetById(aggregateId, CancellationToken.None);
-
-        var restored = Assert.Single(model);
-        Assert.Equal(aggregateId, restored.Id);
-        Assert.Equal("СЃРѕСЃС‚РѕСЏРЅРёРµ", restored.Text.Value);
-        Assert.Equal("@BE", restored.Root.Role);
-    }
 
     [Fact]
     public async Task ReadDb_smoke_stores_and_loads_message_row()

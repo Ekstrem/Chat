@@ -35,21 +35,9 @@ internal sealed class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicM
 
     public void OnNext(AggregateResult<IChat, IChatAnemicModel> value)
     {
-        var domainEvent = value.Event;
-        var entry = new DomainEventEntry
-        {
-            Id = domainEvent.Id,
-            Version = value.BusinessOperationData.Model.Version,
-            CorrelationToken = domainEvent.CorrelationToken,
-            BoundedContext = domainEvent.ContextName,
-            CommandName = domainEvent.Command.CommandName,
-            SubjectName = domainEvent.Command.SubjectName,
-            ChangedValueObjectsJson = ValueObjectJson.Serialize(domainEvent.ChangedValueObjects),
-            Result = domainEvent.Result.ToString(),
-            CreatedAt = DateTime.UtcNow
-        };
+        var entry = DomainEventEntryFactory.Create(value);
 
-        _eventBus.Publish(domainEvent);
+        _eventBus.Publish(value.Event);
         _ = SaveEventAsync(entry);
     }
 

@@ -50,6 +50,16 @@ internal static class ValueObjectJson
             case Guid id:
                 writer.WriteStringValue(id);
                 return;
+            case System.Collections.IDictionary dictionary:
+                writer.WriteStartObject();
+                foreach (System.Collections.DictionaryEntry item in dictionary)
+                {
+                    writer.WritePropertyName(item.Key?.ToString() ?? string.Empty);
+                    WriteValue(writer, item.Value, depth + 1);
+                }
+
+                writer.WriteEndObject();
+                return;
             case System.Collections.IEnumerable sequence:
                 writer.WriteStartArray();
                 foreach (var item in sequence)

@@ -20,17 +20,14 @@ namespace Chat.Storage;
 public sealed class MessageEventHandler : IDomainEventHandler<IChat>, IObserver<IDomainEvent<IChat>>
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly MessageStateCache _cache;
     private readonly ILogger<MessageEventHandler> _logger;
 
     public MessageEventHandler(
         IServiceScopeFactory scopeFactory,
-        MessageStateCache cache,
         ILogger<MessageEventHandler> logger)
     {
         _scopeFactory = scopeFactory;
-        _cache = cache;
-        _logger = logger;
+                _logger = logger;
     }
 
     public void OnCompleted() { }
@@ -69,7 +66,6 @@ public sealed class MessageEventHandler : IDomainEventHandler<IChat>, IObserver<
             stage = "upsert";
             await messageStore.UpsertAsync(row, CancellationToken.None).ConfigureAwait(false);
             stage = "cache";
-            _cache.Set(row.Id, MessageStateRepository.ToAnemicModel(row));
 
             if (string.Equals(commandName, "SendMessage", StringComparison.Ordinal))
             {

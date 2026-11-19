@@ -9,6 +9,7 @@ using Chat.Storage;
 using DigiTFactory.Libraries.CommandRepository.Postgres;
 using DigiTFactory.Libraries.CommandRepository.Postgres.Configuration;
 using DigiTFactory.Libraries.CommandRepository.Postgres.Extensions;
+using DigiTFactory.Libraries.CommandRepository.Postgres.Repositories;
 using DigiTFactory.Libraries.EventBus.InMemory.Extensions;
 using DigiTFactory.Libraries.ReadRepository.Postgres.Extensions;
 using DigiTFactory.Libraries.SeedWorks.Events;
@@ -41,6 +42,13 @@ builder.Services.AddEventStorePostgres<IChat, IChatAnemicModel>(commandDb, optio
     options.SchemaName = eventStoreSchema;
 });
 
+// Чтение Event Store: библиотечная реализация — заглушка, поэтому наследуем и переопределяем.
+builder.Services.AddScoped<ChatEventStoreRepository>();
+builder.Services.AddScoped<IEventStoreRepository<IChat, IChatAnemicModel>>(provider =>
+    provider.GetRequiredService<ChatEventStoreRepository>());
+builder.Services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>>(provider =>
+    provider.GetRequiredService<ChatEventStoreRepository>());
+
 builder.Services.AddEventBusInMemory();
 
 builder.Services.AddReadStorePostgres<IChat, MessageReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
@@ -54,12 +62,6 @@ builder.Services.AddScoped<IQueryableReadRepository<IChat, InboxRowReadModel>>(p
     new ReadModelQuery<InboxRowReadModel>(provider.GetRequiredService<ReadDbContext>()));
 builder.Services.AddScoped<IQueryableReadRepository<IChat, LastReadReadModel>>(provider =>
     new ReadModelQuery<LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
-
-// Состояние агрегата: согласованный кеш процесса + проекция messages.
-builder.Services.AddSingleton<MessageStateCache>();
-builder.Services.AddScoped<MessageStateRepository>();
-builder.Services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>>(provider =>
-    provider.GetRequiredService<MessageStateRepository>());
 
 // Проекции: обработчик подписывается на шину.
 builder.Services.AddSingleton<MessageEventHandler>();

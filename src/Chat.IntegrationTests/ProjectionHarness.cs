@@ -1,6 +1,5 @@
 ﻿using Chat.Domain;
 using Chat.Domain.Abstraction;
-using Chat.DomainServices;
 using Chat.InternalContracts;
 using Chat.Storage;
 using DigiTFactory.Libraries.ReadRepository.Postgres;
@@ -14,12 +13,13 @@ using Microsoft.Extensions.Logging;
 namespace Chat.IntegrationTests;
 
 /// <summary>
-/// Р СћР ВµРЎРѓРЎвЂљР С•Р Р†РЎвЂ№Р в„– РЎРѓРЎвЂљР ВµР Р…Р Т‘ РЎС“РЎР‚Р С•Р Р†Р Р…РЎРЏ 2: РЎР‚Р ВµР В°Р В»РЎРЉР Р…РЎвЂ№Р Вµ Р С—РЎР‚Р С•Р ВµР С”РЎвЂ Р С‘Р С‘ Р С‘ Read Store (EF InMemory), Р В±Р ВµР В· Postgres.
+/// РўРµСЃС‚РѕРІС‹Р№ СЃС‚РµРЅРґ СѓСЂРѕРІРЅСЏ 2: СЂРµР°Р»СЊРЅС‹Рµ РїСЂРѕРµРєС†РёРё Рё Read Store (EF InMemory), Р±РµР· Postgres.
 /// </summary>
 public sealed class ProjectionHarness : IDisposable
 {
     private static readonly InMemoryDatabaseRoot DatabaseRoot = new();
     private static readonly string DatabaseName = $"chat-{Guid.NewGuid():N}";
+
     private readonly ServiceProvider _provider;
 
     public ProjectionHarness()
@@ -45,10 +45,6 @@ public sealed class ProjectionHarness : IDisposable
         services.AddScoped<IReadRepository<IChat, LastReadReadModel>>(provider =>
             new PostgresReadRepository<IChat, LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
 
-        services.AddSingleton<MessageStateCache>();
-        services.AddScoped<MessageStateRepository>();
-        services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>>(provider =>
-            provider.GetRequiredService<MessageStateRepository>());
         services.AddSingleton<MessageEventHandler>();
 
         _provider = services.BuildServiceProvider();
@@ -58,14 +54,14 @@ public sealed class ProjectionHarness : IDisposable
 
     public ReadDbContext ReadDb => _provider.GetRequiredService<ReadDbContext>();
 
-    public MessageStateRepository StateRepository => _provider.GetRequiredService<MessageStateRepository>();
-
     public static IChatAggregate EmptyAggregate(Guid id)
         => Chat.Domain.Implementation.Aggregate.CreateInstance(Chat.Domain.Implementation.DefaultAnemicModel.Create(id));
 
+    public static IChatAggregate AggregateOf(IChatAnemicModel model)
+        => Chat.Domain.Implementation.Aggregate.CreateInstance(model);
+
     public void Dispose() => _provider.Dispose();
 }
-
 /// <summary>Логгер тестового стенда: пишет в консоль, чтобы видеть причины сбоев проекций.</summary>
 internal sealed class ConsoleLoggerProvider : ILoggerProvider
 {

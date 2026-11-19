@@ -69,9 +69,7 @@ public sealed class ChatApiFactory : WebApplicationFactory<Program>
             services.AddScoped<IQueryableReadRepository<IChat, LastReadReadModel>>(provider =>
                 new ReadModelQuery<LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
 
-            services.AddScoped<MessageStateRepository>();
-            services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>>(provider =>
-                provider.GetRequiredService<MessageStateRepository>());
+            services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>, NullAnemicModelRepository>();
         });
     }
 }
@@ -95,4 +93,16 @@ internal sealed class NullEventStoreRepository : IEventStoreRepository<IChat, IC
 
     public Task<int> GetEventCountAsync(Guid id, CancellationToken cancellationToken = default)
         => Task.FromResult(0);
+}
+/// <summary>Репозиторий состояния-заглушка: в тестах агрегат всегда новый.</summary>
+internal sealed class NullAnemicModelRepository : IAnemicModelRepository<IChat, IChatAnemicModel>
+{
+    public Task<List<IChatAnemicModel>> GetById(Guid id, CancellationToken cancellationToken)
+        => Task.FromResult(new List<IChatAnemicModel>());
+
+    public Task<IChatAnemicModel> GetByIdAndVersion(Guid id, long version, CancellationToken cancellationToken)
+        => Task.FromResult<IChatAnemicModel>(null!);
+
+    public Task<IChatAnemicModel> GetByCorrelationToken(Guid correlationToken, CancellationToken cancellationToken)
+        => Task.FromResult<IChatAnemicModel>(null!);
 }
