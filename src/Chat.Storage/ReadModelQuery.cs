@@ -20,9 +20,9 @@ public sealed class ReadModelQuery<TReadModel> : IQueryableReadRepository<IChat,
     public IQueryable<TReadModel> GetQueryable() => _dbContext.Set<TReadModel>().AsQueryable();
 
     public async Task<TReadModel> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _dbContext.Set<TReadModel>()
+        => (await _dbContext.Set<TReadModel>()
             .FindAsync(new object[] { id }, cancellationToken)
-            .ConfigureAwait(false);
+            .ConfigureAwait(false))!;
 
     public async Task<IReadOnlyList<TReadModel>> GetAllAsync(IPaging paging, CancellationToken cancellationToken = default)
         => await _dbContext.Set<TReadModel>()

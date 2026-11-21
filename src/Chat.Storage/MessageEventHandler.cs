@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using Chat.Domain;
 using Chat.Domain.Abstraction;
@@ -81,7 +81,7 @@ public sealed class MessageEventHandler : IDomainEventHandler<IChat>, IObserver<
         {
             _logger.LogError(
                 exception,
-                "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРїСЂРѕРµС†РёСЂРѕРІР°С‚СЊ СЃРѕР±С‹С‚РёРµ {CommandName} Р°РіСЂРµРіР°С‚Р° {AggregateId}.",
+                "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРїСЂРѕРµС†РёСЂРѕРІР°С‚СЊ СЃРѕР±С‹С‚РёРµ {CommandName} Р°РіСЂРµРіР°С‚Р° {AggregateId} РЅР° СЌС‚Р°РїРµ {Stage}.",
                 domainEvent.Command.CommandName,
                 domainEvent.Id,
                 stage);
