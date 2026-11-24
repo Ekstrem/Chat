@@ -1,7 +1,5 @@
 using Chat.Domain;
 using Chat.Domain.Abstraction;
-using DigiTFactory.Libraries.CommandRepository.Postgres.Entities;
-using DigiTFactory.Libraries.CommandRepository.Postgres.Repositories;
 using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using Microsoft.Extensions.Logging;
@@ -9,24 +7,23 @@ using Microsoft.Extensions.Logging;
 namespace Chat.DomainServices;
 
 /// <summary>
-/// Адаптер шины: единственный наблюдатель агрегата. Сначала фиксирует событие в Event Store,
-/// затем публикует его в шину, поэтому следующая команда гарантированно видит предыдущую.
+/// Адаптер шины: публикует результат агрегата и связывает синхронную бизнес-операцию
+/// с асинхронным durable-publish через completion провайдера. В Event Store не пишет.
 /// </summary>
 internal sealed class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicModel>>
 {
     private readonly IEventBus _eventBus;
-    private readonly IEventStoreRepository<IChat, IChatAnemicModel> _eventStore;
     private readonly ILogger<BusAdapter> _logger;
+    private TaskCompletionSource? _completion;
 
-    public BusAdapter(
-        IEventBus eventBus,
-        IEventStoreRepository<IChat, IChatAnemicModel> eventStore,
-        ILogger<BusAdapter> logger)
+    public BusAdapter(IEventBus eventBus, ILogger<BusAdapter> logger)
     {
         _eventBus = eventBus;
-        _eventStore = eventStore;
         _logger = logger;
     }
+
+    /// <summary>Привязать задачу завершения текущей бизнес-операции.</summary>
+    public void UseCompletion(TaskCompletionSource completion) => _completion = completion;
 
     public void OnCompleted() { }
 
@@ -35,30 +32,30 @@ internal sealed class BusAdapter : IObserver<AggregateResult<IChat, IChatAnemicM
 
     public void OnNext(AggregateResult<IChat, IChatAnemicModel> value)
     {
-        var entry = DomainEventEntryFactory.Create(value);
+        if (value.Result != DomainOperationResultEnum.Success)
+        {
+            _completion?.TrySetResult();
+            return;
+        }
 
-        SaveEvent(entry);
-        _eventBus.Publish(value.Event);
+        _ = PublishAsync(value.Event, _completion);
     }
 
-    private void SaveEvent(DomainEventEntry entry)
+    private async Task PublishAsync(IDomainEvent<IChat> domainEvent, TaskCompletionSource? completion)
     {
         try
         {
-            // IObserver.OnNext синхронный, а порт Event Store — асинхронный: ждём фиксацию,
-            // чтобы команда не вернула успех до записи события.
-#pragma warning disable QG612
-            _eventStore.SaveEventAsync(entry, CancellationToken.None).GetAwaiter().GetResult();
-#pragma warning restore QG612
+            await _eventBus.PublishAsync(domainEvent).ConfigureAwait(false);
+            completion?.TrySetResult();
         }
         catch (Exception exception)
         {
             _logger.LogError(
                 exception,
-                "Не удалось сохранить событие {CommandName} агрегата {AggregateId}.",
-                entry.CommandName,
-                entry.Id);
-            throw;
+                "Не удалось опубликовать событие {CommandName} агрегата {AggregateId}.",
+                domainEvent.Command.CommandName,
+                domainEvent.Id);
+            completion?.TrySetException(exception);
         }
     }
 }

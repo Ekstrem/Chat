@@ -13,8 +13,6 @@ using DigiTFactory.Libraries.CommandRepository.Postgres.Repositories;
 using DigiTFactory.Libraries.EventBus.InMemory.Extensions;
 using DigiTFactory.Libraries.ReadRepository.Postgres.Extensions;
 using DigiTFactory.Libraries.SeedWorks.Events;
-using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
-using DigiTFactory.Libraries.SeedWorks.TacticalPatterns.Repository;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,40 +28,28 @@ var readDb = builder.Configuration.GetConnectionString("ReadDb")
 var eventStoreSchema = builder.Configuration["EventStore:SchemaName"] ?? "Commands";
 var readStoreSchema = builder.Configuration["ReadStore:SchemaName"] ?? "ReadModel";
 
-// Event Store: схемой управляют миграции этой сборки, стратегия — полный Event Sourcing.
+// Event Store: полный replay выполняет библиотека через доменный IEventStreamRehydrator.
 builder.Services.AddDbContext<EventStoreDbContext>(options =>
     options.UseNpgsql(commandDb, npgsql => npgsql
         .MigrationsAssembly("Chat.Storage")
         .EnableRetryOnFailure()));
 
+builder.Services.AddScoped<IEventStreamRehydrator<IChat, IChatAnemicModel>, MessageEventStreamRehydrator>();
 builder.Services.AddEventStorePostgres<IChat, IChatAnemicModel>(commandDb, options =>
 {
     options.Strategy = EventStoreStrategy.FullEventSourcing;
     options.SchemaName = eventStoreSchema;
 });
 
-// Чтение Event Store: библиотечная реализация — заглушка, поэтому наследуем и переопределяем.
-builder.Services.AddScoped<ChatEventStoreRepository>();
-builder.Services.AddScoped<IEventStoreRepository<IChat, IChatAnemicModel>>(provider =>
-    provider.GetRequiredService<ChatEventStoreRepository>());
-builder.Services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>>(provider =>
-    provider.GetRequiredService<ChatEventStoreRepository>());
-
 builder.Services.AddEventBusInMemory();
 
+// ReadRepository.Postgres регистрирует IReadRepository, IQueryableReadRepository и IReadModelStore.
 builder.Services.AddReadStorePostgres<IChat, MessageReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
 builder.Services.AddReadStorePostgres<IChat, InboxRowReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
 builder.Services.AddReadStorePostgres<IChat, LastReadReadModel, ReadDbContext>(readDb, options => options.SchemaName = readStoreSchema);
 
-// Библиотека регистрирует только IReadRepository; запросам нужен queryable-доступ к проекциям.
-builder.Services.AddScoped<IQueryableReadRepository<IChat, MessageReadModel>>(provider =>
-    new ReadModelQuery<MessageReadModel>(provider.GetRequiredService<ReadDbContext>()));
-builder.Services.AddScoped<IQueryableReadRepository<IChat, InboxRowReadModel>>(provider =>
-    new ReadModelQuery<InboxRowReadModel>(provider.GetRequiredService<ReadDbContext>()));
-builder.Services.AddScoped<IQueryableReadRepository<IChat, LastReadReadModel>>(provider =>
-    new ReadModelQuery<LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
-
-// Проекции: обработчик подписывается на шину.
+// Durable-запись и проекции — независимые подписчики шины.
+builder.Services.AddSingleton<MessageEventStoreHandler>();
 builder.Services.AddSingleton<MessageEventHandler>();
 
 builder.Services.AddMediatR(configuration =>
@@ -85,8 +71,8 @@ if (!app.Environment.IsEnvironment("Testing"))
 }
 
 var eventBus = app.Services.GetRequiredService<IEventBus>();
-var projectionHandler = app.Services.GetRequiredService<MessageEventHandler>();
-eventBus.Subscribe<IChat>(projectionHandler);
+eventBus.Subscribe<IChat>(app.Services.GetRequiredService<MessageEventStoreHandler>());
+eventBus.Subscribe<IChat>(app.Services.GetRequiredService<MessageEventHandler>());
 
 app.UseSwagger();
 app.UseSwaggerUI(configuration => configuration.SwaggerEndpoint("/swagger/v1/swagger.json", "Chat API v1"));

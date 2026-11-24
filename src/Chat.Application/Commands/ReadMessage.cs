@@ -16,16 +16,19 @@ public sealed record ReadMessageCommand(
 /// <summary>Обработчик ReadMessage.</summary>
 public sealed class ReadMessageHandler : ICommandHandler, IRequestHandler<ReadMessageCommand, ChatOperationResult>
 {
-    private readonly IAggregateProvider<IChat, IChatAggregate> _provider;
+    private readonly IAggregateProviderWithCompletion<IChat, IChatAggregate> _provider;
 
-    public ReadMessageHandler(IAggregateProvider<IChat, IChatAggregate> provider) => _provider = provider;
+    public ReadMessageHandler(IAggregateProviderWithCompletion<IChat, IChatAggregate> provider) => _provider = provider;
 
     public async Task<ChatOperationResult> Handle(ReadMessageCommand request, CancellationToken cancellationToken)
     {
         var command = CommandToAggregate.Commit(request.CorrelationToken, "ReadMessage", request.Addressee);
-        var aggregate = await _provider.GetAggregateAsync(request.MessageId, cancellationToken).ConfigureAwait(false);
+        var (aggregate, completion) = await _provider
+            .GetAggregateWithCompletionAsync(request.MessageId, cancellationToken)
+            .ConfigureAwait(false);
 
         var result = aggregate.ReadMessage(command, request.Addressee);
+        await completion.ConfigureAwait(false);
 
         return result.Result == DomainOperationResultEnum.Success
             ? ChatOperationResult.Ok(request.MessageId)

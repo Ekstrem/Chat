@@ -1,4 +1,4 @@
-﻿using Chat.Domain;
+using Chat.Domain;
 using Chat.Domain.Abstraction;
 using Chat.InternalContracts;
 using Chat.Storage;
@@ -63,11 +63,11 @@ public sealed class ChatApiFactory : WebApplicationFactory<Program>
                 new PostgresReadRepository<IChat, LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
 
             services.AddScoped<IQueryableReadRepository<IChat, MessageReadModel>>(provider =>
-                new ReadModelQuery<MessageReadModel>(provider.GetRequiredService<ReadDbContext>()));
+                new PostgresReadRepository<IChat, MessageReadModel>(provider.GetRequiredService<ReadDbContext>()));
             services.AddScoped<IQueryableReadRepository<IChat, InboxRowReadModel>>(provider =>
-                new ReadModelQuery<InboxRowReadModel>(provider.GetRequiredService<ReadDbContext>()));
+                new PostgresReadRepository<IChat, InboxRowReadModel>(provider.GetRequiredService<ReadDbContext>()));
             services.AddScoped<IQueryableReadRepository<IChat, LastReadReadModel>>(provider =>
-                new ReadModelQuery<LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
+                new PostgresReadRepository<IChat, LastReadReadModel>(provider.GetRequiredService<ReadDbContext>()));
 
             services.AddScoped<IAnemicModelRepository<IChat, IChatAnemicModel>, NullAnemicModelRepository>();
         });

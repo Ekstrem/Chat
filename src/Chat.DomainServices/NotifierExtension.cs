@@ -1,15 +1,23 @@
-﻿using Chat.Domain;
+using Chat.Domain;
 using Chat.Domain.Abstraction;
 using DigiTFactory.Libraries.SeedWorks.Result;
 
 namespace Chat.DomainServices;
 
-/// <summary>Р Р°СЃС€РёСЂРµРЅРёСЏ РґРµРєРѕСЂРёСЂРѕРІР°РЅРёСЏ Р°РіСЂРµРіР°С‚Р° РЅР°Р±Р»СЋРґР°С‚РµР»СЏРјРё.</summary>
+/// <summary>Расширения декорирования агрегата наблюдателями.</summary>
 internal static class NotifierExtension
 {
-    /// <summary>РћР±РµСЂРЅСѓС‚СЊ Р°РіСЂРµРіР°С‚ РІ <see cref="Notifier"/> СЃ СѓРєР°Р·Р°РЅРЅС‹РјРё РЅР°Р±Р»СЋРґР°С‚РµР»СЏРјРё.</summary>
-    public static IChatAggregate PipeNotifierToContract(
+    /// <summary>Обернуть агрегат в <see cref="Notifier"/> и подписать наблюдателей.</summary>
+    public static Notifier PipeNotifierToContract(
         this IChatAggregate aggregate,
         IEnumerable<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
-        => Notifier.Create(aggregate, observers);
+    {
+        var notifier = Notifier.Create(aggregate);
+        foreach (var observer in observers)
+        {
+            ((IObservable<AggregateResult<IChat, IChatAnemicModel>>)notifier).Subscribe(observer);
+        }
+
+        return notifier;
+    }
 }

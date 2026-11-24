@@ -2,35 +2,33 @@ using Chat.Domain;
 using Chat.Domain.Abstraction;
 using DigiTFactory.Libraries.SeedWorks.Characteristics;
 using DigiTFactory.Libraries.SeedWorks.Events;
+using DigiTFactory.Libraries.SeedWorks.Reactive;
 using DigiTFactory.Libraries.SeedWorks.Result;
 using DigiTFactory.Libraries.SeedWorks.TacticalPatterns;
 
 namespace Chat.DomainServices;
 
 /// <summary>
-/// Декоратор агрегата: после каждой успешной бизнес-операции уведомляет наблюдателей
-/// (шину событий) результатом операции.
+/// Декоратор агрегата: проксирует бизнес-методы и рассылает их результат подписчикам
+/// через <see cref="IObservable{T}"/>.
 /// </summary>
 internal sealed class Notifier :
     DomainEventNotifier<IChat, IChatAggregate>,
-    IChatAggregate
+    IChatAggregate,
+    IObservable<AggregateResult<IChat, IChatAnemicModel>>
 {
     private readonly IChatAggregate _aggregate;
-    private readonly IReadOnlyList<IObserver<AggregateResult<IChat, IChatAnemicModel>>> _observers;
+    private readonly List<IObserver<AggregateResult<IChat, IChatAnemicModel>>> _observers = new();
 
-    private Notifier(
-        IChatAggregate aggregate,
-        IReadOnlyList<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
+    private Notifier(IChatAggregate aggregate)
         : base(aggregate)
-    {
-        _aggregate = aggregate;
-        _observers = observers;
-    }
+        => _aggregate = aggregate;
 
-    public static IChatAggregate Create(
-        IChatAggregate aggregate,
-        IEnumerable<IObserver<AggregateResult<IChat, IChatAnemicModel>>> observers)
-        => new Notifier(aggregate, observers.ToList());
+    public static Notifier Create(IChatAggregate aggregate) => new(aggregate);
+
+    IDisposable IObservable<AggregateResult<IChat, IChatAnemicModel>>.Subscribe(
+        IObserver<AggregateResult<IChat, IChatAnemicModel>> observer)
+        => Unsubscriber<AggregateResult<IChat, IChatAnemicModel>>.Subscribe(_observers, observer);
 
     public Guid Id => _aggregate.Id;
 
@@ -65,12 +63,9 @@ internal sealed class Notifier :
 
     private AggregateResult<IChat, IChatAnemicModel> Notify(AggregateResult<IChat, IChatAnemicModel> result)
     {
-        if (result.Result == DomainOperationResultEnum.Success)
+        foreach (var observer in _observers)
         {
-            foreach (var observer in _observers)
-            {
-                observer.OnNext(result);
-            }
+            observer.OnNext(result);
         }
 
         return result;

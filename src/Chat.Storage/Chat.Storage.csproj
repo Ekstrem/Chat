@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -14,9 +14,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
-    <PackageReference Include="DigiTFactory.Libraries.SeedWorks" Version="0.6.0" />
-    <PackageReference Include="DigiTFactory.Libraries.CommandRepository.Postgres" Version="0.2.1" />
-    <PackageReference Include="DigiTFactory.Libraries.ReadRepository.Postgres" Version="0.1.1" />
+    <PackageReference Include="DigiTFactory.Libraries.SeedWorks" Version="0.9.2" />
+    <PackageReference Include="DigiTFactory.Libraries.CommandRepository.Postgres" Version="0.4.0" />
+    <PackageReference Include="DigiTFactory.Libraries.ReadRepository.Postgres" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup>

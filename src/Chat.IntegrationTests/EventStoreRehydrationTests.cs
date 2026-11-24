@@ -11,7 +11,7 @@ namespace Chat.IntegrationTests;
 
 /// <summary>
 /// Level 2: состояние агрегата восстанавливается из журнала событий
-/// (переопределённое чтение Event Store вместо библиотечной заглушки).
+/// через доменный IEventStreamRehydrator библиотечного Full Event Sourcing.
 /// </summary>
 public sealed class EventStoreRehydrationTests
 {
@@ -32,7 +32,7 @@ public sealed class EventStoreRehydrationTests
             new Dictionary<string, string> { ["priority"] = "high" });
 
         var entry = DomainEventEntryFactory.Create(result);
-        var restored = MessageEventSerializer.Rehydrate(new[] { entry });
+        var restored = Assert.Single(new MessageEventStreamRehydrator().Rehydrate(new[] { entry }));
 
         Assert.Equal(aggregateId, restored.Id);
         Assert.Equal("Chat", restored.Root.Product);
@@ -76,7 +76,7 @@ public sealed class EventStoreRehydrationTests
             DomainEventEntryFactory.Create(read)
         };
 
-        var restored = MessageEventSerializer.Rehydrate(entries);
+        var restored = Assert.Single(new MessageEventStreamRehydrator().Rehydrate(entries));
 
         Assert.Equal("исходное", restored.Text.Value);
         Assert.Equal(new[] { attachmentId }, restored.Attachments.Items);

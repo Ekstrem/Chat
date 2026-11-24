@@ -1,4 +1,4 @@
-﻿using Chat.Domain;
+using Chat.Domain;
 using Chat.Domain.Abstraction;
 using DigiTFactory.Libraries.SeedWorks.Events;
 using DigiTFactory.Libraries.SeedWorks.Result;
@@ -21,14 +21,16 @@ public sealed record SendMessageCommand(
 /// <summary>РћР±СЂР°Р±РѕС‚С‡РёРє SendMessage: Р°РіСЂРµРіР°С‚ в†’ РёРЅРІР°СЂРёР°РЅС‚С‹ в†’ СЃРѕР±С‹С‚РёРµ С‡РµСЂРµР· С€РёРЅСѓ.</summary>
 public sealed class SendMessageHandler : ICommandHandler, IRequestHandler<SendMessageCommand, ChatOperationResult>
 {
-    private readonly IAggregateProvider<IChat, IChatAggregate> _provider;
+    private readonly IAggregateProviderWithCompletion<IChat, IChatAggregate> _provider;
 
-    public SendMessageHandler(IAggregateProvider<IChat, IChatAggregate> provider) => _provider = provider;
+    public SendMessageHandler(IAggregateProviderWithCompletion<IChat, IChatAggregate> provider) => _provider = provider;
 
     public async Task<ChatOperationResult> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
         var command = CommandToAggregate.Commit(request.CorrelationToken, "SendMessage", request.Role);
-        var aggregate = await _provider.GetAggregateAsync(Guid.NewGuid(), cancellationToken).ConfigureAwait(false);
+        var (aggregate, completion) = await _provider
+            .GetAggregateWithCompletionAsync(Guid.NewGuid(), cancellationToken)
+            .ConfigureAwait(false);
 
         var result = aggregate.SendMessage(
             command,
@@ -39,6 +41,7 @@ public sealed class SendMessageHandler : ICommandHandler, IRequestHandler<SendMe
             request.Attachments,
             request.ReplyTo,
             request.ExtendedFields);
+        await completion.ConfigureAwait(false);
 
         return result.Result == DomainOperationResultEnum.Success
             ? ChatOperationResult.Ok(result.Event.Id)
